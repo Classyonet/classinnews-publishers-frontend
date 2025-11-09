@@ -64,10 +64,12 @@ export default function NewArticlePage() {
 
   const fetchMedia = async () => {
     try {
-      const response = await mediaAPI.getAll({ type: 'image' })
+      const response = await mediaAPI.getAll()
       // Handle both response formats
       const data = response.data ? response.data : response
-      setMediaFiles(data)
+      // Filter for images only
+      const images = Array.isArray(data) ? data.filter((m: any) => m.type === 'image') : []
+      setMediaFiles(images)
     } catch (err) {
       console.error('Failed to fetch media:', err)
     }
