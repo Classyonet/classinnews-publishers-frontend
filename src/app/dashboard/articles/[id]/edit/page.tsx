@@ -45,7 +45,7 @@ export default function EditArticlePage() {
         setCategories(categoriesData)
 
         // Fetch article
-        const articleData = await articlesAPI.getById(articleId)
+        const articleData = await articlesAPI.getOne(articleId)
         console.log('Fetched article:', articleData)
         
         setArticle({
