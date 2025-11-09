@@ -51,14 +51,24 @@ export default function MediaPage() {
   const fetchMedia = async () => {
     try {
       setIsLoading(true)
-      const params: any = {}
-      if (filterType !== 'all') params.type = filterType
-      if (searchTerm) params.search = searchTerm
       
-      const response = await mediaAPI.getAll(params)
+      const response = await mediaAPI.getAll()
       // Handle both response formats: { success: true, data: [...] } or just [...]
       const data = response.data ? response.data : response
-      setMedia(Array.isArray(data) ? data : [])
+      let mediaList = Array.isArray(data) ? data : []
+      
+      // Client-side filtering
+      if (filterType !== 'all') {
+        mediaList = mediaList.filter((item: any) => item.type === filterType)
+      }
+      if (searchTerm) {
+        mediaList = mediaList.filter((item: any) => 
+          item.filename?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.title?.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      }
+      
+      setMedia(mediaList)
     } catch (err) {
       console.error('Failed to fetch media:', err)
       setMedia([])
