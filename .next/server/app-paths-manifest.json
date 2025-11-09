@@ -1,0 +1,11 @@
+{
+  "/dashboard/articles/page": "app/dashboard/articles/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/dashboard/analytics/page": "app/dashboard/analytics/page.js",
+  "/dashboard/revenue/page": "app/dashboard/revenue/page.js",
+  "/dashboard/articles/new/page": "app/dashboard/articles/new/page.js",
+  "/dashboard/browse-topics/page": "app/dashboard/browse-topics/page.js",
+  "/dashboard/media/page": "app/dashboard/media/page.js",
+  "/dashboard/messages/page": "app/dashboard/messages/page.js",
+  "/dashboard/settings/page": "app/dashboard/settings/page.js"
+}
