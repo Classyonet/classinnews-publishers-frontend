@@ -1,8 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'export',
+  trailingSlash: true,
   images: {
     unoptimized: true,
-    domains: ['localhost', 'images.unsplash.com', 'via.placeholder.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
+    ],
   },
   webpack: (config, { isServer }) => {
     if (!isServer) {
@@ -17,6 +28,10 @@ const nextConfig = {
     return config
   },
   transpilePackages: ['react-quill'],
+  // Cloudflare Pages compatibility
+  experimental: {
+    runtime: 'edge',
+  },
 }
 
 module.exports = nextConfig
