@@ -17,7 +17,11 @@ import {
   Loader2,
   Clock,
   CheckCheck,
-  XCircle
+  XCircle,
+  Star,
+  Percent,
+  Info,
+  Award
 } from 'lucide-react'
 
 interface PaymentDetails {
@@ -35,6 +39,16 @@ interface WithdrawalRequest {
   requestDate: string
   processedDate?: string
   adminNotes?: string
+  commissionRate?: number
+  commissionAmount?: number
+  netAmount?: number
+  tierAtWithdrawal?: string
+}
+
+interface CommissionInfo {
+  rate: number
+  tierName: string
+  starRating: number
 }
 
 interface ArticleEarning {
@@ -64,6 +78,7 @@ export default function RevenuePage() {
   const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | null>(null)
   const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([])
   const [earnings, setEarnings] = useState<EarningsData | null>(null)
+  const [commissionInfo, setCommissionInfo] = useState<CommissionInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [earningsLoading, setEarningsLoading] = useState(true)
   
@@ -113,6 +128,7 @@ export default function RevenuePage() {
     fetchPaymentDetails()
     fetchWithdrawals()
     fetchEarnings()
+    fetchCommissionInfo()
   }, [])
 
   const fetchPaymentDetails = async () => {
@@ -189,6 +205,30 @@ export default function RevenuePage() {
     } finally {
       setEarningsLoading(false)
     }
+  }
+
+  const fetchCommissionInfo = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_PUBLISHERS_API}/api/commission-info`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        }
+      })
+      if (response.ok) {
+        const result = await response.json()
+        setCommissionInfo(result.data || result)
+      }
+    } catch (error) {
+      console.error('Failed to fetch commission info:', error)
+    }
+  }
+
+  // Calculate commission preview for withdrawal
+  const calculateCommission = (amount: number) => {
+    const rate = commissionInfo?.rate ?? 30
+    const commission = (amount * rate) / 100
+    const net = amount - commission
+    return { rate, commission, net }
   }
 
   const handleSavePaymentDetails = async () => {
@@ -355,6 +395,96 @@ export default function RevenuePage() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Commission Info Banner */}
+      <div className="rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-[2px] shadow-lg">
+        <div className="rounded-2xl bg-white p-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                <Percent className="h-7 w-7 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  Withdrawal Commission Rate
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-gradient-to-r from-indigo-500 to-purple-500 text-white">
+                    <Star className="h-3 w-3" />
+                    {commissionInfo?.tierName || 'New'} Tier
+                  </span>
+                </h3>
+                <p className="text-sm text-slate-600 mt-1">
+                  Your current tier determines the commission rate on withdrawals
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="text-center">
+                <p className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
+                  {commissionInfo?.rate ?? 30}%
+                </p>
+                <p className="text-xs text-slate-500 font-medium">Commission</p>
+              </div>
+              <div className="text-center">
+                <div className="flex items-center gap-1">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`h-5 w-5 ${i < (commissionInfo?.starRating ?? 0) ? 'text-amber-400 fill-amber-400' : 'text-slate-300'}`}
+                    />
+                  ))}
+                </div>
+                <p className="text-xs text-slate-500 font-medium mt-1">{commissionInfo?.starRating ?? 0}/5 Stars</p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Commission Tier Breakdown */}
+          <div className="mt-4 pt-4 border-t border-slate-100">
+            <div className="flex items-center gap-2 mb-3">
+              <Info className="h-4 w-4 text-slate-500" />
+              <span className="text-sm font-medium text-slate-700">Commission Rates by Tier</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+              {[
+                { tier: 'New', stars: 0, rate: 30 },
+                { tier: 'Starter', stars: 1, rate: 25 },
+                { tier: 'Bronze', stars: 2, rate: 20 },
+                { tier: 'Silver', stars: 3, rate: 15 },
+                { tier: 'Platinum', stars: 4, rate: 10 },
+                { tier: 'Gold', stars: 5, rate: 0 },
+              ].map((t) => (
+                <div 
+                  key={t.tier} 
+                  className={`p-2 rounded-xl text-center text-xs transition-all ${
+                    commissionInfo?.tierName === t.tier 
+                      ? 'bg-gradient-to-br from-indigo-100 to-purple-100 border-2 border-indigo-300 ring-2 ring-indigo-200' 
+                      : 'bg-slate-50 border border-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-0.5 mb-1">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`h-3 w-3 ${i < t.stars ? 'text-amber-400 fill-amber-400' : 'text-slate-300'}`}
+                      />
+                    ))}
+                  </div>
+                  <p className={`font-bold ${commissionInfo?.tierName === t.tier ? 'text-indigo-700' : 'text-slate-700'}`}>
+                    {t.tier}
+                  </p>
+                  <p className={`font-semibold ${commissionInfo?.tierName === t.tier ? 'text-indigo-600' : 'text-slate-500'}`}>
+                    {t.rate}%
+                  </p>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-slate-500 mt-3 flex items-center gap-1">
+              <Award className="h-3 w-3" />
+              Increase your tier rating to reduce commission fees. Gold tier publishers pay 0% commission!
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Payment Information & Withdrawal */}
@@ -827,6 +957,42 @@ export default function RevenuePage() {
                       )}
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* Commission Breakdown */}
+              {withdrawAmount && parseFloat(withdrawAmount) > 0 && (
+                <div className="p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-200">
+                  <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                    <Percent className="h-5 w-5 text-indigo-600" />
+                    Commission Breakdown
+                    <span className="ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700">
+                      <Star className="h-3 w-3" />
+                      {commissionInfo?.tierName || 'New'} Tier
+                    </span>
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Requested Amount:</span>
+                      <span className="font-medium text-slate-900">GHC {parseFloat(withdrawAmount).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-red-600">
+                      <span>Commission ({commissionInfo?.rate ?? 30}%):</span>
+                      <span className="font-medium">- GHC {calculateCommission(parseFloat(withdrawAmount)).commission.toFixed(2)}</span>
+                    </div>
+                    <div className="pt-2 border-t border-indigo-200 flex justify-between text-lg">
+                      <span className="font-semibold text-slate-700">You'll Receive:</span>
+                      <span className="font-bold text-emerald-600">GHC {calculateCommission(parseFloat(withdrawAmount)).net.toFixed(2)}</span>
+                    </div>
+                  </div>
+                  {(commissionInfo?.rate ?? 30) > 0 && (
+                    <div className="mt-3 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                      <p className="text-xs text-amber-700 flex items-start gap-1">
+                        <Info className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                        Increase your tier rating to reduce commission. Gold tier (5★) publishers pay 0% commission!
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
