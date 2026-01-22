@@ -1,7 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
-  trailingSlash: true,
   images: {
     unoptimized: true,
     remotePatterns: [
@@ -28,10 +26,6 @@ const nextConfig = {
     return config
   },
   transpilePackages: ['react-quill'],
-  // Cloudflare Pages compatibility
-  experimental: {
-    runtime: 'edge',
-  },
 }
 
 module.exports = nextConfig
