@@ -1,16 +1,44 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Bell, Search, Menu, User, LogOut, Settings } from 'lucide-react'
+import { Bell, Search, Menu, User, LogOut, Settings, Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/auth-context'
+import { StarBadgeCompact } from '@/components/star-badge'
 
 export function Header() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
+  const [stars, setStars] = useState<number>(0)
   const { user, logout } = useAuth()
   const router = useRouter()
+
+  useEffect(() => {
+    const fetchRating = async () => {
+      try {
+        const token = localStorage.getItem('auth_token')
+        if (!token) return
+
+        const response = await fetch(`${process.env.NEXT_PUBLIC_PUBLISHERS_API || 'http://localhost:3003'}/api/rating/my-rating`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (response.ok) {
+          const result = await response.json()
+          // Handle both response formats
+          const data = result.data || result
+          setStars(data.starRating || 0)
+        }
+      } catch (err) {
+        console.error('Error fetching rating:', err)
+      }
+    }
+
+    fetchRating()
+  }, [])
 
   const handleLogout = () => {
     logout()
@@ -93,6 +121,9 @@ export function Header() {
                 <span className="ml-3 text-sm font-semibold leading-6 text-slate-900" aria-hidden="true">
                   {user?.username || 'User'}
                 </span>
+                <span className="ml-2">
+                  <StarBadgeCompact stars={stars} size="sm" />
+                </span>
               </span>
             </button>
 
@@ -100,7 +131,10 @@ export function Header() {
             {isProfileMenuOpen && (
               <div className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-xl bg-white py-1 shadow-xl ring-1 ring-slate-900/5 focus:outline-none border border-slate-100">
                 <div className="px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-purple-50 to-pink-50">
-                  <p className="text-sm font-semibold text-slate-900">{user?.username}</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-slate-900">{user?.username}</p>
+                    <StarBadgeCompact stars={stars} size="sm" />
+                  </div>
                   <p className="text-xs text-slate-600 truncate mt-0.5">{user?.email}</p>
                 </div>
                 <button

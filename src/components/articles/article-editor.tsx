@@ -5,7 +5,16 @@ import dynamic from 'next/dynamic'
 import 'react-quill/dist/quill.snow.css'
 
 // Dynamically import ReactQuill to avoid SSR issues
-const ReactQuill = dynamic(() => import('react-quill'), { ssr: false })
+const ReactQuill = dynamic(
+  async () => {
+    const { default: RQ } = await import('react-quill')
+    return RQ
+  },
+  { 
+    ssr: false,
+    loading: () => <div className="h-64 bg-gray-100 rounded animate-pulse"></div>
+  }
+)
 
 interface Article {
   title: string
