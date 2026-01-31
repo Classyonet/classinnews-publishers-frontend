@@ -67,7 +67,9 @@ export const authAPI = {
 
     if (!response.ok) {
       const error = await response.json()
-      throw new Error(error.message || 'Login failed')
+      const err: any = new Error(error.message || 'Login failed')
+      err.code = error.code // Preserve error code for special handling
+      throw err
     }
 
     const data = await response.json()

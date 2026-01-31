@@ -10,6 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ArrowLeft } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003'
+
 export default function LoginPage() {
   const router = useRouter()
   const { login } = useAuth()
@@ -19,19 +21,50 @@ export default function LoginPage() {
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [errorCode, setErrorCode] = useState('')
+  const [resending, setResending] = useState(false)
+  const [resendSuccess, setResendSuccess] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError('')
-    
+    setErrorCode('')
+    setResendSuccess(false)
+
     try {
       await login(formData.email, formData.password)
       router.push('/dashboard')
     } catch (err: any) {
       setError(err.message || 'Failed to login. Please check your credentials.')
+      setErrorCode(err.code || '')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleResendVerification = async () => {
+    setResending(true)
+    setResendSuccess(false)
+
+    try {
+      const response = await fetch(`${API_URL}/api/auth/resend-verification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setResendSuccess(true)
+      } else {
+        alert(data.message || 'Failed to resend verification email')
+      }
+    } catch (error) {
+      alert('Failed to resend verification email. Please try again.')
+    } finally {
+      setResending(false)
     }
   }
 
@@ -74,6 +107,31 @@ export default function LoginPage() {
             {error && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
                 <p className="text-sm text-red-600">{error}</p>
+                {errorCode === 'EMAIL_NOT_VERIFIED' && (
+                  <div className="mt-3">
+                    {resendSuccess ? (
+                      <p className="text-sm text-green-600">
+                        ✓ Verification email sent! Please check your inbox.
+                      </p>
+                    ) : (
+                      <Button
+                        type="button"
+                        onClick={handleResendVerification}
+                        disabled={resending}
+                        size="sm"
+                        variant="outline"
+                        className="w-full"
+                      >
+                        {resending ? 'Sending...' : 'Resend Verification Email'}
+                      </Button>
+                    )}
+                  </div>
+                )}
+                {errorCode === 'PENDING_APPROVAL' && (
+                  <p className="text-sm text-gray-600 mt-2">
+                    We'll notify you via email once your account is activated.
+                  </p>
+                )}
               </div>
             )}
             <form className="space-y-6" onSubmit={handleSubmit}>
@@ -125,9 +183,9 @@ export default function LoginPage() {
                 </div>
 
                 <div className="text-sm">
-                  <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
+                  <Link href="/auth/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
                     Forgot your password?
-                  </a>
+                  </Link>
                 </div>
               </div>
 
