@@ -20,6 +20,7 @@ import {
   X
 } from 'lucide-react'
 import { mediaAPI } from '@/lib/api'
+import { getMediaUrl } from '@/lib/media'
 
 interface Media {
   id: string
@@ -295,8 +296,7 @@ export default function MediaPage() {
       {!isLoading && viewMode === 'grid' && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {media.map((item) => {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003'
-            const imageUrl = `${API_URL}${item.fileUrl}`
+            const imageUrl = getMediaUrl(item.fileUrl)
             return (
             <div key={item.id} className="group rounded-2xl overflow-hidden bg-white shadow-lg border border-slate-100 hover:shadow-2xl hover:scale-[1.02] transition-all">
               <div className="aspect-square bg-gradient-to-br from-slate-100 to-purple-100/30 relative">
@@ -360,8 +360,7 @@ export default function MediaPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {media.map((item) => {
-                const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003'
-                const imageUrl = `${API_URL}${item.fileUrl}`
+                const imageUrl = getMediaUrl(item.fileUrl)
                 return (
                 <tr key={item.id} className="hover:bg-gradient-to-r hover:from-slate-50 hover:to-purple-50/20 transition-colors">
                   <td className="px-6 py-4">

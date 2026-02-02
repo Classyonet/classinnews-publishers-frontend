@@ -6,9 +6,9 @@
 export function getMediaUrl(fileUrl: string | null | undefined): string {
   if (!fileUrl) return ''
   
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://classinnews-publishers-backend.onrender.com'
   
-  // If the URL already includes http, return as is
+  // If the URL already includes http, return as is (e.g., R2 URLs)
   if (fileUrl.startsWith('http')) {
     return fileUrl
   }

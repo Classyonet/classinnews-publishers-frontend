@@ -10,6 +10,7 @@ import { ArticleEditor } from '@/components/articles/article-editor'
 import { ArrowLeft, Save, Eye, Send, Upload, Image as ImageIcon, X } from 'lucide-react'
 import Link from 'next/link'
 import { articlesAPI, categoriesAPI, mediaAPI } from '@/lib/api'
+import { getMediaUrl } from '@/lib/media'
 
 export default function EditArticlePage() {
   const router = useRouter()
@@ -99,8 +100,7 @@ export default function EditArticlePage() {
     try {
       const response = await mediaAPI.upload(file)
       const media = response?.data || response
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003'
-      const imageUrl = `${API_URL}${media.fileUrl}`
+      const imageUrl = getMediaUrl(media.fileUrl)
       setArticle({ ...article, featuredImageUrl: imageUrl })
       alert('Image uploaded successfully!')
     } catch (err: any) {
@@ -115,9 +115,9 @@ export default function EditArticlePage() {
     await fetchMedia()
   }
 
-  const selectMediaImage = (imageUrl: string) => {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003'
-    setArticle({ ...article, featuredImageUrl: `${API_URL}${imageUrl}` })
+  const selectMediaImage = (fileUrl: string) => {
+    const imageUrl = getMediaUrl(fileUrl)
+    setArticle({ ...article, featuredImageUrl: imageUrl })
     setShowMediaLibrary(false)
   }
 
@@ -465,7 +465,7 @@ export default function EditArticlePage() {
             ) : (
               <div className="grid grid-cols-4 gap-4">
                 {mediaFiles.map((media) => {
-                  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003'
+                  const imageUrl = getMediaUrl(media.fileUrl)
                   return (
                     <div
                       key={media.id}
@@ -473,7 +473,7 @@ export default function EditArticlePage() {
                       className="cursor-pointer hover:opacity-75 transition-opacity border-2 border-transparent hover:border-blue-500 rounded-lg overflow-hidden"
                     >
                       <img
-                        src={`${API_URL}${media.fileUrl}`}
+                        src={imageUrl}
                         alt={media.altText || 'Media file'}
                         className="w-full h-32 object-cover"
                         onError={(e) => {

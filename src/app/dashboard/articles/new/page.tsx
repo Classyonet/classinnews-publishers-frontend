@@ -10,6 +10,7 @@ import { ArticleEditor } from '@/components/articles/article-editor'
 import { ArrowLeft, Save, Eye, Send, Upload, Image as ImageIcon, X } from 'lucide-react'
 import Link from 'next/link'
 import { articlesAPI, categoriesAPI, mediaAPI } from '@/lib/api'
+import { getMediaUrl } from '@/lib/media'
 
 export default function NewArticlePage() {
   const router = useRouter()
@@ -89,8 +90,8 @@ export default function NewArticlePage() {
     setUploadingImage(true)
     try {
       const media = await mediaAPI.upload(file)
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003'
-      const imageUrl = media.data ? `${API_URL}${media.data.fileUrl}` : `${API_URL}${media.fileUrl}`
+      const fileUrl = media.data?.fileUrl || media.fileUrl
+      const imageUrl = getMediaUrl(fileUrl)
       setArticle({ ...article, featuredImageUrl: imageUrl })
       alert('Image uploaded successfully!')
     } catch (err: any) {
@@ -105,9 +106,9 @@ export default function NewArticlePage() {
     await fetchMedia()
   }
 
-  const selectMediaImage = (imageUrl: string) => {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003'
-    setArticle({ ...article, featuredImageUrl: `${API_URL}${imageUrl}` })
+  const selectMediaImage = (fileUrl: string) => {
+    const imageUrl = getMediaUrl(fileUrl)
+    setArticle({ ...article, featuredImageUrl: imageUrl })
     setShowMediaLibrary(false)
   }
 
@@ -640,8 +641,7 @@ export default function NewArticlePage() {
             ) : (
               <div className="grid grid-cols-4 gap-4">
                 {mediaFiles.map((media) => {
-                  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003'
-                  const imageUrl = `${API_URL}${media.fileUrl}`
+                  const imageUrl = getMediaUrl(media.fileUrl)
                   return (
                     <div
                       key={media.id}
