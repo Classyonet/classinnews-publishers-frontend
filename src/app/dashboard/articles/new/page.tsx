@@ -70,8 +70,8 @@ export default function NewArticlePage() {
       const response = await mediaAPI.getAll()
       // Handle both response formats
       const data = response.data ? response.data : response
-      // Filter for images only
-      const images = Array.isArray(data) ? data.filter((m: any) => m.type === 'image') : []
+      // Filter for images only (fileType starts with 'image/')
+      const images = Array.isArray(data) ? data.filter((m: any) => m.fileType?.startsWith('image/')) : []
       setMediaFiles(images)
     } catch (err) {
       console.error('Failed to fetch media:', err)
