@@ -5,9 +5,42 @@ import { Providers } from '@/components/providers'
 
 const inter = Inter({ subsets: ['latin'] })
 
-export const metadata: Metadata = {
-  title: 'ClassinNews - Publishers',
-  description: 'Create and manage your news content with ClassinNews',
+const ADMIN_API_URL = process.env.NEXT_PUBLIC_ADMIN_API_URL || 'https://classinnews-admin-backend.onrender.com'
+
+async function getBrandingSettings() {
+  try {
+    const res = await fetch(`${ADMIN_API_URL}/api/settings/branding`, {
+      cache: 'no-store'
+    })
+    if (res.ok) {
+      const data = await res.json()
+      return data.data
+    }
+  } catch (error) {
+    console.error('Failed to fetch branding:', error)
+  }
+  return { site_favicon_url: '' }
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const branding = await getBrandingSettings()
+  
+  const metadata: Metadata = {
+    title: 'ClassinNews - Publishers',
+    description: 'Create and manage your news content with ClassinNews',
+  }
+  
+  if (branding.site_favicon_url) {
+    const faviconUrl = branding.site_favicon_url.startsWith('http') 
+      ? branding.site_favicon_url 
+      : `${ADMIN_API_URL}${branding.site_favicon_url}`
+    metadata.icons = {
+      icon: faviconUrl,
+      shortcut: faviconUrl,
+    }
+  }
+  
+  return metadata
 }
 
 export default function RootLayout({
