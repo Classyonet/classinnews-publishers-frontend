@@ -23,6 +23,7 @@ export default function BrowseTopicsPage() {
   const [topics, setTopics] = useState<TrendingTopic[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const ADMIN_API_URL = process.env.NEXT_PUBLIC_ADMIN_API_URL || 'https://classinnews-admin-backend.onrender.com'
 
   useEffect(() => {
     fetchTopics()
@@ -32,7 +33,7 @@ export default function BrowseTopicsPage() {
     setLoading(true)
     try {
       console.log('🔍 Fetching topics from admin backend...')
-      const res = await fetch('http://localhost:3002/api/trending-topics/active')
+      const res = await fetch(`${ADMIN_API_URL}/api/trending-topics/active`)
       console.log('📡 Response status:', res.status)
       
       if (!res.ok) {
