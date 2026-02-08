@@ -2,58 +2,77 @@
 
 export const runtime = 'edge';
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 
 export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><p>Processing login...</p></div>}>
+      <AuthCallbackContent />
+    </Suspense>
+  )
+}
+
+function AuthCallbackContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { setTokenAndUser } = useAuth()
   const [status, setStatus] = useState('Processing login...')
 
   useEffect(() => {
-    const token = searchParams.get('token')
-    const provider = searchParams.get('provider')
+    const handleAuth = async () => {
+      const token = searchParams.get('token')
+      const provider = searchParams.get('provider')
 
-    if (!token) {
-      setStatus('Authentication failed. No token received.')
-      setTimeout(() => router.push('/auth/login?error=no_token'), 2000)
-      return
-    }
+      if (!token) {
+        setStatus('Authentication failed. No token received.')
+        setTimeout(() => router.push('/auth/login?error=no_token'), 2000)
+        return
+      }
 
-    // Store token and redirect to dashboard
-    try {
-      localStorage.setItem('token', token)
-      
-      // Fetch user data
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://classinnews-publishers-backend.onrender.com'
-      
-      fetch(`${API_URL}/api/auth/me`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.id || data.user) {
-            const user = data.user || data
-            localStorage.setItem('user', JSON.stringify(user))
-            setStatus(`Welcome back! Redirecting to dashboard...`)
-            router.push('/dashboard')
-          } else {
-            throw new Error('Failed to get user data')
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://classinnews-publishers-backend.onrender.com'
+        
+        // Fetch user data
+        const response = await fetch(`${API_URL}/api/auth/me`, {
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
           }
         })
-        .catch(err => {
-          console.error('Auth callback error:', err)
-          setStatus('Authentication failed. Please try again.')
-          setTimeout(() => router.push('/auth/login?error=callback_failed'), 2000)
-        })
-    } catch (error) {
-      console.error('Token storage error:', error)
-      setStatus('Authentication failed. Please try again.')
-      setTimeout(() => router.push('/auth/login?error=storage_failed'), 2000)
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const data = await response.json()
+        
+        if (data.id || data.user) {
+          const user = data.user || data
+          
+          // Use the auth context to set token and user
+          // This should handle storage internally
+          await setTokenAndUser(token, user)
+          
+          setStatus(`Welcome back${user.name ? `, ${user.name}` : ''}! Redirecting to dashboard...`)
+          
+          // Small delay for better UX
+          setTimeout(() => {
+            router.push('/dashboard')
+          }, 1000)
+        } else {
+          throw new Error('Invalid user data received')
+        }
+      } catch (err) {
+        console.error('Auth callback error:', err)
+        setStatus('Authentication failed. Please try again.')
+        setTimeout(() => router.push('/auth/login?error=callback_failed'), 2000)
+      }
     }
-  }, [searchParams, router])
+
+    handleAuth()
+  }, [searchParams, router, setTokenAndUser])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500">

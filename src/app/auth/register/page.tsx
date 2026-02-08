@@ -15,27 +15,22 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://classinnews-publishe
 export default function RegisterPage() {
   const router = useRouter()
   const { register } = useAuth()
-  const [formData, setFormData] = useState({
-    email: '',
-    username: '',
-    password: '',
-    confirmPassword: ''
-  })
+  const [activeTab, setActiveTab] = useState<'email' | 'phone'>('email')
+  const [formData, setFormData] = useState({ email: '', username: '', password: '', confirmPassword: '' })
+  const [phoneData, setPhoneData] = useState({ phoneNumber: '', username: '' })
+  const [otp, setOtp] = useState('')
+  const [otpSent, setOtpSent] = useState(false)
+  const [otpMessage, setOtpMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
   const [oauthProviders, setOauthProviders] = useState({ google: false, facebook: false, twitter: false })
 
-  // Fetch available OAuth providers
   useEffect(() => {
     fetch(`${API_URL}/api/auth/oauth-providers`)
       .then(res => res.json())
-      .then(data => {
-        if (data.providers) {
-          setOauthProviders(data.providers)
-        }
-      })
+      .then(data => { if (data.providers) setOauthProviders(data.providers) })
       .catch(() => {})
   }, [])
 
@@ -43,11 +38,7 @@ export default function RegisterPage() {
     window.location.href = `${API_URL}/api/auth/google`
   }
 
-  const handleFacebookRegister = () => {
-    window.location.href = `${API_URL}/api/auth/facebook`
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError('')
@@ -57,17 +48,16 @@ export default function RegisterPage() {
       setIsLoading(false)
       return
     }
-
     if (formData.password.length < 6) {
       setError('Password must be at least 6 characters')
       setIsLoading(false)
       return
     }
-    
+
     try {
       const response = await register(formData.email, formData.username, formData.password)
       setSuccess(true)
-      setSuccessMessage(response.message || 'Registration successful! Please wait for admin approval.')
+      setSuccessMessage(response.message || 'Registration successful! Please check your email to verify your account.')
     } catch (err: any) {
       setError(err.message || 'Failed to register. Please try again.')
     } finally {
@@ -75,24 +65,62 @@ export default function RegisterPage() {
     }
   }
 
+  const handleSendOtp = async () => {
+    if (!phoneData.phoneNumber.trim()) {
+      setError('Please enter your phone number')
+      return
+    }
+    if (!phoneData.username.trim() || phoneData.username.length < 3) {
+      setError('Please enter a username (min 3 characters)')
+      return
+    }
+    setIsLoading(true)
+    setError('')
+    try {
+      const res = await fetch(`${API_URL}/api/auth/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber: phoneData.phoneNumber, purpose: 'register' })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message || 'Failed to send OTP')
+      setOtpSent(true)
+      setOtpMessage(data.message || 'OTP sent!')
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!otp.trim()) {
+      setError('Please enter the OTP')
+      return
+    }
+    setIsLoading(true)
+    setError('')
+    try {
+      const res = await fetch(`${API_URL}/api/auth/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber: phoneData.phoneNumber, otp, purpose: 'register', username: phoneData.username })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message || 'OTP verification failed')
+      setSuccess(true)
+      setSuccessMessage(data.message || 'Registration successful! Your account is pending admin approval.')
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen relative overflow-hidden flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      {/* Animated gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-teal-600 to-green-500 animate-gradient"></div>
-      
-      {/* Animated wave patterns */}
-      <div className="absolute inset-0 opacity-20">
-        <svg className="absolute w-full h-full" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320" preserveAspectRatio="none">
-          <path fill="rgba(255,255,255,0.1)" d="M0,192L48,176C96,160,192,128,288,128C384,128,480,160,576,165.3C672,171,768,149,864,144C960,139,1056,149,1152,154.7C1248,160,1344,160,1392,160L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z">
-            <animate attributeName="d" dur="12s" repeatCount="indefinite" values="
-              M0,192L48,176C96,160,192,128,288,128C384,128,480,160,576,165.3C672,171,768,149,864,144C960,139,1056,149,1152,154.7C1248,160,1344,160,1392,160L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z;
-              M0,128L48,138.7C96,149,192,171,288,165.3C384,160,480,128,576,122.7C672,117,768,139,864,154.7C960,171,1056,181,1152,181.3C1248,181,1344,171,1392,165.3L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z;
-              M0,192L48,176C96,160,192,128,288,128C384,128,480,160,576,165.3C672,171,768,149,864,144C960,139,1056,149,1152,154.7C1248,160,1344,160,1392,160L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z" />
-          </path>
-        </svg>
-      </div>
-
-      {/* Content */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-teal-600 to-green-500"></div>
       <div className="max-w-md w-full space-y-8 relative z-10">
         <div className="text-center">
           <Link href="/" className="inline-flex items-center text-sm text-white hover:text-white/80 backdrop-blur-sm bg-white/10 px-4 py-2 rounded-full">
@@ -104,36 +132,18 @@ export default function RegisterPage() {
         <Card className="backdrop-blur-md bg-white/95 shadow-2xl border-white/20">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold">Create Your Account</CardTitle>
-            <CardDescription>
-              Join ClassinNews and start creating amazing content
-            </CardDescription>
+            <CardDescription>Join ClassinNews and start creating amazing content</CardDescription>
           </CardHeader>
           <CardContent>
             {success ? (
               <div className="space-y-4">
                 <div className="p-4 bg-green-50 border border-green-200 rounded-md">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-green-800">Registration Successful!</h3>
-                      <p className="mt-2 text-sm text-green-700">{successMessage}</p>
-                      <p className="mt-2 text-sm text-green-700">
-                        You will receive an email notification once your account is activated.
-                      </p>
-                    </div>
-                  </div>
+                  <h3 className="text-sm font-medium text-green-800">Registration Successful!</h3>
+                  <p className="mt-2 text-sm text-green-700">{successMessage}</p>
                 </div>
-                <div className="text-center">
-                  <Link href="/auth/login">
-                    <Button variant="outline" className="w-full">
-                      Go to Login Page
-                    </Button>
-                  </Link>
-                </div>
+                <Link href="/auth/login">
+                  <Button variant="outline" className="w-full">Go to Login Page</Button>
+                </Link>
               </div>
             ) : (
               <>
@@ -142,135 +152,127 @@ export default function RegisterPage() {
                     <p className="text-sm text-red-600">{error}</p>
                   </div>
                 )}
-                <form className="space-y-6" onSubmit={handleSubmit}>
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter your email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
-                />
-              </div>
 
-              <div>
-                <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-                  Username
-                </label>
-                <input
-                  id="username"
-                  name="username"
-                  type="text"
-                  autoComplete="username"
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Choose a username"
-                  value={formData.username}
-                  onChange={(e) => setFormData({...formData, username: e.target.value})}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                  Password
-                </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Create a password (min 6 characters)"
-                  value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                  Confirm Password
-                </label>
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Confirm your password"
-                  value={formData.confirmPassword}
-                  onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-                />
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={isLoading}
-              >
-                {isLoading ? 'Creating Account...' : 'Create Account'}
-              </Button>
-            </form>
-
-            <div className="mt-6">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300" />
+                {/* Tabs */}
+                <div className="flex rounded-lg bg-gray-100 p-1 mb-6">
+                  <button type="button"
+                    className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'email' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    onClick={() => { setActiveTab('email'); setError('') }}>
+                    Email
+                  </button>
+                  <button type="button"
+                    className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'phone' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    onClick={() => { setActiveTab('phone'); setError(''); setOtpSent(false) }}>
+                    Phone OTP
+                  </button>
                 </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">Or sign up with</span>
+
+                {activeTab === 'email' ? (
+                  <form className="space-y-4" onSubmit={handleEmailSubmit}>
+                    <div>
+                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                      <input id="email" type="email" autoComplete="email" required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                        placeholder="Enter your email" value={formData.email}
+                        onChange={(e) => setFormData({...formData, email: e.target.value})} />
+                    </div>
+                    <div>
+                      <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                      <input id="username" type="text" autoComplete="username" required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                        placeholder="Choose a username" value={formData.username}
+                        onChange={(e) => setFormData({...formData, username: e.target.value})} />
+                    </div>
+                    <div>
+                      <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                      <input id="password" type="password" autoComplete="new-password" required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                        placeholder="Min 6 characters" value={formData.password}
+                        onChange={(e) => setFormData({...formData, password: e.target.value})} />
+                    </div>
+                    <div>
+                      <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                      <input id="confirmPassword" type="password" autoComplete="new-password" required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                        placeholder="Confirm your password" value={formData.confirmPassword}
+                        onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})} />
+                    </div>
+                    <Button type="submit" className="w-full" disabled={isLoading}>
+                      {isLoading ? 'Creating Account...' : 'Create Account'}
+                    </Button>
+                  </form>
+                ) : (
+                  <div className="space-y-4">
+                    {!otpSent ? (
+                      <>
+                        <div>
+                          <label htmlFor="phone-username" className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                          <input id="phone-username" type="text"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                            placeholder="Choose a username" value={phoneData.username}
+                            onChange={(e) => setPhoneData({...phoneData, username: e.target.value})} />
+                        </div>
+                        <div>
+                          <label htmlFor="phone-reg" className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                          <input id="phone-reg" type="tel" autoComplete="tel"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                            placeholder="+91 9876543210" value={phoneData.phoneNumber}
+                            onChange={(e) => setPhoneData({...phoneData, phoneNumber: e.target.value})} />
+                        </div>
+                        <Button type="button" className="w-full" disabled={isLoading} onClick={handleSendOtp}>
+                          {isLoading ? 'Sending OTP...' : 'Send OTP'}
+                        </Button>
+                      </>
+                    ) : (
+                      <form onSubmit={handleVerifyOtp} className="space-y-4">
+                        {otpMessage && (
+                          <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                            <p className="text-sm text-green-700">{otpMessage}</p>
+                          </div>
+                        )}
+                        <div>
+                          <label htmlFor="otp-reg" className="block text-sm font-medium text-gray-700 mb-1">Enter OTP</label>
+                          <input id="otp-reg" type="text" maxLength={6} autoComplete="one-time-code"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-center text-2xl tracking-widest"
+                            placeholder="000000" value={otp}
+                            onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} />
+                        </div>
+                        <Button type="submit" className="w-full" disabled={isLoading}>
+                          {isLoading ? 'Verifying...' : 'Verify & Register'}
+                        </Button>
+                        <button type="button" className="w-full text-sm text-teal-600 hover:text-teal-500"
+                          onClick={() => { setOtpSent(false); setOtp(''); setOtpMessage('') }}>
+                          Change phone number / Resend OTP
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                )}
+
+                <div className="mt-6">
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-300" /></div>
+                    <div className="relative flex justify-center text-sm"><span className="px-2 bg-white text-gray-500">Or sign up with</span></div>
+                  </div>
+                  <div className="mt-4">
+                    <Button variant="outline" className="w-full" onClick={handleGoogleRegister} disabled={!oauthProviders.google} type="button">
+                      <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                      </svg>
+                      Continue with Google
+                    </Button>
+                  </div>
                 </div>
-              </div>
 
-              <div className="mt-6">
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={handleGoogleRegister}
-                  disabled={!oauthProviders.google}
-                  type="button"
-                >
-                  <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                  </svg>
-                  Continue with Google
-                </Button>
-                {/* Facebook Login - Coming Soon
-                <Button 
-                  variant="outline" 
-                  className="w-full mt-3"
-                  onClick={handleFacebookRegister}
-                  disabled={!oauthProviders.facebook}
-                  type="button"
-                >
-                  <svg className="w-5 h-5 mr-2" fill="#1877F2" viewBox="0 0 24 24">
-                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                  </svg>
-                  Continue with Facebook
-                </Button>
-                */}
-              </div>
-            </div>
-
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
-                Already have an account?{' '}
-                <Link href="/auth/login" className="font-medium text-blue-600 hover:text-blue-500">
-                  Sign in here
-                </Link>
-              </p>
-            </div>
+                <div className="mt-6 text-center">
+                  <p className="text-sm text-gray-600">
+                    Already have an account?{' '}
+                    <Link href="/auth/login" className="font-medium text-teal-600 hover:text-teal-500">Sign in here</Link>
+                  </p>
+                </div>
               </>
             )}
           </CardContent>
