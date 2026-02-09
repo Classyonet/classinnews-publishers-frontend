@@ -15,13 +15,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://classinnews-publishe
 function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { login, setTokenAndUser } = useAuth()
-  const [activeTab, setActiveTab] = useState<'email' | 'phone'>('email')
+  const { login } = useAuth()
   const [formData, setFormData] = useState({ email: '', password: '' })
-  const [phoneNumber, setPhoneNumber] = useState('')
-  const [otp, setOtp] = useState('')
-  const [otpSent, setOtpSent] = useState(false)
-  const [otpMessage, setOtpMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [errorCode, setErrorCode] = useState('')
@@ -69,57 +64,6 @@ function LoginContent() {
     } catch (err: any) {
       setError(err.message || 'Failed to login. Please check your credentials.')
       setErrorCode(err.code || '')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleSendOtp = async () => {
-    if (!phoneNumber.trim()) {
-      setError('Please enter your phone number')
-      return
-    }
-    setIsLoading(true)
-    setError('')
-    try {
-      const res = await fetch(`${API_URL}/api/auth/send-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber, purpose: 'login' })
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.message || 'Failed to send OTP')
-      setOtpSent(true)
-      setOtpMessage(data.message || 'OTP sent!')
-    } catch (err: any) {
-      setError(err.message)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!otp.trim()) {
-      setError('Please enter the OTP')
-      return
-    }
-    setIsLoading(true)
-    setError('')
-    try {
-      const res = await fetch(`${API_URL}/api/auth/verify-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber, otp, purpose: 'login' })
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.message || 'OTP verification failed')
-      if (data.token && data.user) {
-        await setTokenAndUser(data.token, data.user)
-        router.push('/dashboard')
-      }
-    } catch (err: any) {
-      setError(err.message)
     } finally {
       setIsLoading(false)
     }
@@ -183,25 +127,6 @@ function LoginContent() {
               </div>
             )}
 
-            {/* Tabs */}
-            <div className="flex rounded-lg bg-gray-100 p-1 mb-6">
-              <button
-                type="button"
-                className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'email' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                onClick={() => { setActiveTab('email'); setError(''); setErrorCode('') }}
-              >
-                Email
-              </button>
-              <button
-                type="button"
-                className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'phone' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                onClick={() => { setActiveTab('phone'); setError(''); setErrorCode(''); setOtpSent(false) }}
-              >
-                Phone OTP
-              </button>
-            </div>
-
-            {activeTab === 'email' ? (
               <form className="space-y-4" onSubmit={handleSubmit}>
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
@@ -224,45 +149,6 @@ function LoginContent() {
                   {isLoading ? 'Signing in...' : 'Sign In'}
                 </Button>
               </form>
-            ) : (
-              <div className="space-y-4">
-                {!otpSent ? (
-                  <>
-                    <div>
-                      <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                      <input id="phone" type="tel" autoComplete="tel"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                        placeholder="+91 9876543210" value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value)} />
-                    </div>
-                    <Button type="button" className="w-full" disabled={isLoading} onClick={handleSendOtp}>
-                      {isLoading ? 'Sending OTP...' : 'Send OTP'}
-                    </Button>
-                  </>
-                ) : (
-                  <form onSubmit={handleVerifyOtp} className="space-y-4">
-                    {otpMessage && (
-                      <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                        <p className="text-sm text-green-700">{otpMessage}</p>
-                      </div>
-                    )}
-                    <div>
-                      <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-1">Enter OTP</label>
-                      <input id="otp" type="text" maxLength={6} autoComplete="one-time-code"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-center text-2xl tracking-widest"
-                        placeholder="000000" value={otp}
-                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} />
-                    </div>
-                    <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? 'Verifying...' : 'Verify OTP'}
-                    </Button>
-                    <button type="button" className="w-full text-sm text-purple-600 hover:text-purple-500" onClick={() => { setOtpSent(false); setOtp(''); setOtpMessage('') }}>
-                      Change phone number / Resend OTP
-                    </button>
-                  </form>
-                )}
-              </div>
-            )}
 
             <div className="mt-6">
               <div className="relative">

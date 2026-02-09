@@ -15,12 +15,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://classinnews-publishe
 export default function RegisterPage() {
   const router = useRouter()
   const { register } = useAuth()
-  const [activeTab, setActiveTab] = useState<'email' | 'phone'>('email')
   const [formData, setFormData] = useState({ email: '', username: '', password: '', confirmPassword: '' })
-  const [phoneData, setPhoneData] = useState({ phoneNumber: '', username: '' })
-  const [otp, setOtp] = useState('')
-  const [otpSent, setOtpSent] = useState(false)
-  const [otpMessage, setOtpMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
@@ -65,59 +60,6 @@ export default function RegisterPage() {
     }
   }
 
-  const handleSendOtp = async () => {
-    if (!phoneData.phoneNumber.trim()) {
-      setError('Please enter your phone number')
-      return
-    }
-    if (!phoneData.username.trim() || phoneData.username.length < 3) {
-      setError('Please enter a username (min 3 characters)')
-      return
-    }
-    setIsLoading(true)
-    setError('')
-    try {
-      const res = await fetch(`${API_URL}/api/auth/send-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber: phoneData.phoneNumber, purpose: 'register' })
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.message || 'Failed to send OTP')
-      setOtpSent(true)
-      setOtpMessage(data.message || 'OTP sent!')
-    } catch (err: any) {
-      setError(err.message)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!otp.trim()) {
-      setError('Please enter the OTP')
-      return
-    }
-    setIsLoading(true)
-    setError('')
-    try {
-      const res = await fetch(`${API_URL}/api/auth/verify-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber: phoneData.phoneNumber, otp, purpose: 'register', username: phoneData.username })
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.message || 'OTP verification failed')
-      setSuccess(true)
-      setSuccessMessage(data.message || 'Registration successful! Your account is pending admin approval.')
-    } catch (err: any) {
-      setError(err.message)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   return (
     <div className="min-h-screen relative overflow-hidden flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-teal-600 to-green-500"></div>
@@ -153,21 +95,6 @@ export default function RegisterPage() {
                   </div>
                 )}
 
-                {/* Tabs */}
-                <div className="flex rounded-lg bg-gray-100 p-1 mb-6">
-                  <button type="button"
-                    className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'email' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                    onClick={() => { setActiveTab('email'); setError('') }}>
-                    Email
-                  </button>
-                  <button type="button"
-                    className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'phone' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                    onClick={() => { setActiveTab('phone'); setError(''); setOtpSent(false) }}>
-                    Phone OTP
-                  </button>
-                </div>
-
-                {activeTab === 'email' ? (
                   <form className="space-y-4" onSubmit={handleEmailSubmit}>
                     <div>
                       <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
@@ -201,53 +128,6 @@ export default function RegisterPage() {
                       {isLoading ? 'Creating Account...' : 'Create Account'}
                     </Button>
                   </form>
-                ) : (
-                  <div className="space-y-4">
-                    {!otpSent ? (
-                      <>
-                        <div>
-                          <label htmlFor="phone-username" className="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                          <input id="phone-username" type="text"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                            placeholder="Choose a username" value={phoneData.username}
-                            onChange={(e) => setPhoneData({...phoneData, username: e.target.value})} />
-                        </div>
-                        <div>
-                          <label htmlFor="phone-reg" className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                          <input id="phone-reg" type="tel" autoComplete="tel"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                            placeholder="+91 9876543210" value={phoneData.phoneNumber}
-                            onChange={(e) => setPhoneData({...phoneData, phoneNumber: e.target.value})} />
-                        </div>
-                        <Button type="button" className="w-full" disabled={isLoading} onClick={handleSendOtp}>
-                          {isLoading ? 'Sending OTP...' : 'Send OTP'}
-                        </Button>
-                      </>
-                    ) : (
-                      <form onSubmit={handleVerifyOtp} className="space-y-4">
-                        {otpMessage && (
-                          <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                            <p className="text-sm text-green-700">{otpMessage}</p>
-                          </div>
-                        )}
-                        <div>
-                          <label htmlFor="otp-reg" className="block text-sm font-medium text-gray-700 mb-1">Enter OTP</label>
-                          <input id="otp-reg" type="text" maxLength={6} autoComplete="one-time-code"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-center text-2xl tracking-widest"
-                            placeholder="000000" value={otp}
-                            onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} />
-                        </div>
-                        <Button type="submit" className="w-full" disabled={isLoading}>
-                          {isLoading ? 'Verifying...' : 'Verify & Register'}
-                        </Button>
-                        <button type="button" className="w-full text-sm text-teal-600 hover:text-teal-500"
-                          onClick={() => { setOtpSent(false); setOtp(''); setOtpMessage('') }}>
-                          Change phone number / Resend OTP
-                        </button>
-                      </form>
-                    )}
-                  </div>
-                )}
 
                 <div className="mt-6">
                   <div className="relative">
