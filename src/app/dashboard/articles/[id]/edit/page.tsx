@@ -1,8 +1,6 @@
-import EditArticlePage from './ClientContent'
+export const runtime = 'edge'
 
-export async function generateStaticParams() {
-  return [{ id: '_placeholder' }]
-}
+import EditArticlePage from './ClientContent'
 
 export default function Page() {
   return <EditArticlePage />
