@@ -1,8 +1,7 @@
 'use client'
 
-export const runtime = 'edge';
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,7 +11,7 @@ import Link from 'next/link'
 import { articlesAPI, categoriesAPI, mediaAPI } from '@/lib/api'
 import { getMediaUrl } from '@/lib/media'
 
-export default function NewArticlePage() {
+function NewArticlePageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [article, setArticle] = useState({
@@ -751,6 +750,14 @@ export default function NewArticlePage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function NewArticlePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><p>Loading...</p></div>}>
+      <NewArticlePageContent />
+    </Suspense>
   )
 }
 

@@ -1,6 +1,5 @@
 'use client'
 
-export const runtime = 'edge';
 
 import { useEffect, useState } from 'react'
 import { InboxIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'

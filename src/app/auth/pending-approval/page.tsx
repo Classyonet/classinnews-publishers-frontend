@@ -1,14 +1,14 @@
 'use client'
 
-export const runtime = 'edge';
 
+import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { CheckCircle2, ArrowLeft, Mail } from 'lucide-react'
 
-export default function PendingApprovalPage() {
+function PendingApprovalContent() {
   const searchParams = useSearchParams()
   const provider = searchParams.get('provider') || 'social'
   const email = searchParams.get('email') || ''
@@ -85,5 +85,13 @@ export default function PendingApprovalPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+export default function PendingApprovalPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><p>Loading...</p></div>}>
+      <PendingApprovalContent />
+    </Suspense>
   )
 }
