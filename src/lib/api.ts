@@ -1,4 +1,4 @@
-const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://classinnews-publishers-backend.onrender.com'
 const API_URL = RAW_API_URL.replace(/\/+$/, '') // Remove trailing slashes
 
 console.log('🔧 API Configuration:', {
