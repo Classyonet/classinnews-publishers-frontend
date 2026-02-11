@@ -1,5 +1,0 @@
-# Cloudflare Pages SPA fallback for dynamic routes
-# These rewrites serve the placeholder page HTML for any dynamic id,
-# then client-side JS reads the actual id via useParams() and fetches data
-
-/dashboard/articles/*/edit /dashboard/articles/_placeholder/edit/index.html 200
