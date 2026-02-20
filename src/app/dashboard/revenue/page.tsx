@@ -49,6 +49,12 @@ interface CommissionInfo {
   rate: number
   tierName: string
   starRating: number
+  tierRates?: Array<{
+    key: string
+    tier: string
+    stars: number
+    rate: number
+  }>
 }
 
 interface ArticleEarning {
@@ -93,6 +99,14 @@ export default function RevenuePage() {
   
   const [withdrawAmount, setWithdrawAmount] = useState('')
   const [validationErrors, setValidationErrors] = useState<string[]>([])
+  const defaultTierRates = [
+    { key: 'commission_new_tier', tier: 'New', stars: 0, rate: 30 },
+    { key: 'commission_starter_tier', tier: 'Starter', stars: 1, rate: 25 },
+    { key: 'commission_bronze_tier', tier: 'Bronze', stars: 2, rate: 20 },
+    { key: 'commission_silver_tier', tier: 'Silver', stars: 3, rate: 15 },
+    { key: 'commission_platinum_tier', tier: 'Platinum', stars: 4, rate: 10 },
+    { key: 'commission_gold_tier', tier: 'Gold', stars: 5, rate: 0 },
+  ]
 
   const stats = [
     {
@@ -164,8 +178,8 @@ export default function RevenuePage() {
         }
       })
       if (response.ok) {
-        const data = await response.json()
-        setWithdrawals(data)
+        const result = await response.json()
+        setWithdrawals(result.data || result || [])
       }
     } catch (error) {
       console.error('Failed to fetch withdrawals:', error)
@@ -318,8 +332,8 @@ export default function RevenuePage() {
       })
 
       if (response.ok) {
-        const data = await response.json()
-        setWithdrawals([data, ...withdrawals])
+        await response.json()
+        await fetchWithdrawals()
         setShowWithdrawModal(false)
         setWithdrawAmount('')
         alert('Withdrawal request submitted successfully!')
@@ -446,16 +460,9 @@ export default function RevenuePage() {
               <span className="text-sm font-medium text-slate-700">Commission Rates by Tier</span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
-              {[
-                { tier: 'New', stars: 0, rate: 30 },
-                { tier: 'Starter', stars: 1, rate: 25 },
-                { tier: 'Bronze', stars: 2, rate: 20 },
-                { tier: 'Silver', stars: 3, rate: 15 },
-                { tier: 'Platinum', stars: 4, rate: 10 },
-                { tier: 'Gold', stars: 5, rate: 0 },
-              ].map((t) => (
+              {(commissionInfo?.tierRates || defaultTierRates).map((t) => (
                 <div 
-                  key={t.tier} 
+                  key={t.key} 
                   className={`p-2 rounded-xl text-center text-xs transition-all ${
                     commissionInfo?.tierName === t.tier 
                       ? 'bg-gradient-to-br from-indigo-100 to-purple-100 border-2 border-indigo-300 ring-2 ring-indigo-200' 
