@@ -82,7 +82,7 @@ export default function SettingsPage() {
           })
         ])
 
-        const fetchErrors: string[] = []
+        let ratingFetchError: string | null = null
 
         if (ratingRes.ok) {
           const result = await ratingRes.json()
@@ -90,11 +90,11 @@ export default function SettingsPage() {
           if (ratingData && typeof ratingData === 'object' && ratingData.starRating !== undefined) {
             setRating(ratingData)
           } else {
-            fetchErrors.push('Rating response did not include valid data.')
+            ratingFetchError = 'Rating response did not include valid data.'
           }
         } else {
           const error = await ratingRes.json().catch(() => null)
-          fetchErrors.push(error?.message || 'Failed to load publisher rating.')
+          ratingFetchError = error?.message || 'Failed to load publisher rating.'
         }
 
         if (settingsRes.ok) {
@@ -102,11 +102,15 @@ export default function SettingsPage() {
           setRatingSettings(result.data || [])
         } else {
           const error = await settingsRes.json().catch(() => null)
-          fetchErrors.push(error?.message || 'Failed to load rating settings.')
+          console.warn('Failed to load rating settings, using rating payload fallback:', error?.message || settingsRes.statusText)
+          setRatingSettings([])
         }
 
-        if (fetchErrors.length > 0) {
-          setRatingError(fetchErrors.join(' '))
+        // Only block rating UI when rating payload itself failed.
+        if (ratingFetchError) {
+          setRatingError(ratingFetchError)
+        } else {
+          setRatingError(null)
         }
       } catch (err) {
         console.error('Error fetching rating:', err)
@@ -127,7 +131,7 @@ export default function SettingsPage() {
 
   const stars = rating?.starRating || 0
   const maxStars = rating?.maxStars || 5
-  const hasRatingData = !ratingError && !!rating
+  const hasRatingData = !!rating
   const tier = getTierInfo(stars)
   const tierBackground = hasRatingData ? tier.background : 'bg-gradient-to-r from-slate-500 to-slate-600'
   const tierBorder = hasRatingData ? tier.border : 'border-slate-300'
