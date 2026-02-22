@@ -38,6 +38,7 @@ import {
 import { useAuth } from '@/contexts/auth-context'
 import { useTheme } from '@/contexts/theme-context'
 import { StarBadgeLarge, getTierInfo } from '@/components/star-badge'
+import { API_URL, getToken } from '@/lib/api'
 
 interface RatingSetting {
   settingKey: string
@@ -56,6 +57,7 @@ export default function SettingsPage() {
   // Rating state
   const [rating, setRating] = useState<any>(null)
   const [ratingLoading, setRatingLoading] = useState(true)
+  const [ratingError, setRatingError] = useState<string | null>(null)
   const [ratingSettings, setRatingSettings] = useState<RatingSetting[]>([])
 
   // Fetch rating data and settings
@@ -63,30 +65,52 @@ export default function SettingsPage() {
     const fetchRatingData = async () => {
       try {
         setRatingLoading(true)
-        const token = localStorage.getItem('auth_token')
-        if (!token) return
+        setRatingError(null)
+        const token = getToken()
+        if (!token) {
+          setRatingError('Not authenticated. Please sign in again to view your rating.')
+          return
+        }
 
         // Fetch rating and settings in parallel
         const [ratingRes, settingsRes] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_PUBLISHERS_API || 'http://localhost:3003'}/api/rating/my-rating`, {
+          fetch(`${API_URL}/api/rating/my-rating`, {
             headers: { 'Authorization': `Bearer ${token}` }
           }),
-          fetch(`${process.env.NEXT_PUBLIC_PUBLISHERS_API || 'http://localhost:3003'}/api/rating/rating-info`, {
+          fetch(`${API_URL}/api/rating/rating-info`, {
             headers: { 'Authorization': `Bearer ${token}` }
           })
         ])
 
+        const fetchErrors: string[] = []
+
         if (ratingRes.ok) {
           const result = await ratingRes.json()
-          setRating(result.data || result)
+          const ratingData = result.data || result
+          if (ratingData && typeof ratingData === 'object' && ratingData.starRating !== undefined) {
+            setRating(ratingData)
+          } else {
+            fetchErrors.push('Rating response did not include valid data.')
+          }
+        } else {
+          const error = await ratingRes.json().catch(() => null)
+          fetchErrors.push(error?.message || 'Failed to load publisher rating.')
         }
 
         if (settingsRes.ok) {
           const result = await settingsRes.json()
           setRatingSettings(result.data || [])
+        } else {
+          const error = await settingsRes.json().catch(() => null)
+          fetchErrors.push(error?.message || 'Failed to load rating settings.')
+        }
+
+        if (fetchErrors.length > 0) {
+          setRatingError(fetchErrors.join(' '))
         }
       } catch (err) {
         console.error('Error fetching rating:', err)
+        setRatingError('Rating data is unavailable right now. Please try again shortly.')
       } finally {
         setRatingLoading(false)
       }
@@ -103,7 +127,11 @@ export default function SettingsPage() {
 
   const stars = rating?.starRating || 0
   const maxStars = rating?.maxStars || 5
+  const hasRatingData = !ratingError && !!rating
   const tier = getTierInfo(stars)
+  const tierBackground = hasRatingData ? tier.background : 'bg-gradient-to-r from-slate-500 to-slate-600'
+  const tierBorder = hasRatingData ? tier.border : 'border-slate-300'
+  const tierName = hasRatingData ? tier.name : 'Unavailable'
   
   // Points-based rating data from API
   const totalPoints = rating?.totalPoints || 0
@@ -254,7 +282,7 @@ export default function SettingsPage() {
                 {/* Publisher Rating Card */}
                 <div className="overflow-hidden rounded-3xl shadow-2xl border-0">
                   {/* Header with Tier-Based Gradient */}
-                  <div className={`${tier.background} px-8 py-10 relative overflow-hidden`}>
+                  <div className={`${tierBackground} px-8 py-10 relative overflow-hidden`}>
                     {/* Decorative elements */}
                     <div className="absolute inset-0 opacity-20">
                       <div className="absolute top-0 left-0 w-40 h-40 bg-white rounded-full -translate-x-1/2 -translate-y-1/2 blur-2xl"></div>
@@ -273,20 +301,20 @@ export default function SettingsPage() {
                         <p className="text-white/80 text-base max-w-lg">
                           Your performance score calculated from followers, published articles, and reader engagement
                         </p>
-                        <div className={`inline-flex items-center gap-2 mt-4 px-5 py-2 rounded-full ${tier.border} border-2 bg-white/10 backdrop-blur-sm`}>
+                        <div className={`inline-flex items-center gap-2 mt-4 px-5 py-2 rounded-full ${tierBorder} border-2 bg-white/10 backdrop-blur-sm`}>
                           <Sparkles className="w-5 h-5 text-white" />
-                          <span className="text-white font-bold text-xl">{tier.name} Tier</span>
+                          <span className="text-white font-bold text-xl">{tierName}{hasRatingData ? ' Tier' : ''}</span>
                         </div>
                       </div>
                       
                       {/* Large Star Badge */}
-                      {!ratingLoading ? (
+                      {!ratingLoading && hasRatingData ? (
                         <StarBadgeLarge 
                           stars={stars} 
                           maxStars={maxStars} 
                           showProgress={true}
                         />
-                      ) : (
+                      ) : ratingLoading ? (
                         <div className="flex items-center gap-2 px-6 py-4 rounded-2xl bg-white/20 backdrop-blur-sm">
                           <div className="animate-pulse flex gap-2">
                             {[...Array(5)].map((_, i) => (
@@ -294,12 +322,23 @@ export default function SettingsPage() {
                             ))}
                           </div>
                         </div>
+                      ) : (
+                        <div className="px-6 py-4 rounded-2xl bg-white/20 backdrop-blur-sm">
+                          <p className="text-white font-semibold">Rating unavailable</p>
+                        </div>
                       )}
                     </div>
                   </div>
                   
                   {/* Rating Stats Grid - Points Based */}
                   <div className="bg-white p-8">
+                    {ratingError ? (
+                      <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6">
+                        <h3 className="text-lg font-semibold text-rose-700">Publisher rating is unavailable</h3>
+                        <p className="mt-2 text-sm text-rose-600">{ratingError}</p>
+                      </div>
+                    ) : (
+                      <>
                     {/* Total Points Display */}
                     <div className="mb-6 p-6 rounded-2xl bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-50 border border-amber-200">
                       <div className="flex flex-col md:flex-row items-center justify-between gap-4">
@@ -415,8 +454,8 @@ export default function SettingsPage() {
                           <span className="font-semibold text-slate-800">Tier Progress</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className={`px-3 py-1 rounded-full text-sm font-bold ${tier.background} text-white`}>
-                            {tier.name}
+                          <span className={`px-3 py-1 rounded-full text-sm font-bold ${tierBackground} text-white`}>
+                            {tierName}
                           </span>
                           <ChevronRight className="w-4 h-4 text-slate-400" />
                           <span className="px-3 py-1 rounded-full text-sm font-bold bg-slate-200 text-slate-600">
@@ -430,7 +469,7 @@ export default function SettingsPage() {
                       </div>
                       <div className="h-4 bg-slate-200 rounded-full overflow-hidden shadow-inner">
                         <div 
-                          className={`h-full ${tier.background} rounded-full transition-all duration-1000 relative overflow-hidden`}
+                          className={`h-full ${tierBackground} rounded-full transition-all duration-1000 relative overflow-hidden`}
                           style={{ width: `${progressToNext}%` }}
                         >
                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-shimmer"></div>
@@ -459,7 +498,7 @@ export default function SettingsPage() {
                           { name: 'Platinum', stars: 4, points: pointsFor4Stars, color: 'bg-indigo-500', textColor: 'text-indigo-600', bgLight: 'bg-indigo-50' },
                           { name: 'Gold', stars: 5, points: pointsFor5Stars, color: 'bg-yellow-500', textColor: 'text-yellow-600', bgLight: 'bg-yellow-50' },
                         ].map((tierInfo, index) => {
-                          const isCurrentTier = tier.name === tierInfo.name;
+                          const isCurrentTier = tierName === tierInfo.name;
                           const isAchieved = totalPoints >= tierInfo.points;
                           return (
                             <div 
@@ -498,6 +537,8 @@ export default function SettingsPage() {
                         Your current tier is highlighted. Earn more stars to unlock higher tiers!
                       </p>
                     </div>
+                      </>
+                    )}
                   </div>
                 </div>
 

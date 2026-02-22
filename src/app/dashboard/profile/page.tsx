@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { StarBadgeLarge, getTierInfo } from '@/components/star-badge'
 import { Star, TrendingUp, Users, FileText, Heart, Share2, ThumbsUp, Award, Target, Zap } from 'lucide-react'
+import { API_URL, getToken } from '@/lib/api'
 
 interface RatingData {
   starRating: number
@@ -34,13 +35,13 @@ export default function ProfilePage() {
     const fetchRating = async () => {
       try {
         setRatingLoading(true)
-        const token = localStorage.getItem('auth_token')
+        const token = getToken()
         if (!token) {
           setRatingError('Not authenticated')
           return
         }
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_PUBLISHERS_API || 'http://localhost:3003'}/api/rating/my-rating`, {
+        const response = await fetch(`${API_URL}/api/rating/my-rating`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -50,8 +51,12 @@ export default function ProfilePage() {
           const result = await response.json()
           // Handle both response formats
           const data = result.data || result
-          setRating(data)
-          setRatingError(null)
+          if (data && typeof data === 'object' && data.starRating !== undefined) {
+            setRating(data)
+            setRatingError(null)
+          } else {
+            setRatingError('Rating data is unavailable')
+          }
         } else {
           const error = await response.json()
           setRatingError(error.error || error.message || 'Failed to fetch rating')
@@ -70,9 +75,15 @@ export default function ProfilePage() {
   const stars = rating?.starRating || 0
   const maxStars = rating?.maxStars || 5
   const tier = getTierInfo(stars)
+  const hasRatingData = !ratingError && !!rating
+  const tierBackground = hasRatingData ? tier.background : 'bg-gradient-to-r from-slate-500 to-slate-600'
+  const tierBorder = hasRatingData ? tier.border : 'border-slate-300'
+  const tierName = hasRatingData ? tier.name : 'Unavailable'
   
   // Calculate progress to next star
-  const currentProgress = ((rating?.followersScore || 0) * 0.3 + (rating?.articlesScore || 0) * 0.3 + (rating?.engagementScore || 0) * 0.4)
+  const currentProgress = hasRatingData
+    ? ((rating?.followersScore || 0) * 0.3 + (rating?.articlesScore || 0) * 0.3 + (rating?.engagementScore || 0) * 0.4)
+    : 0
   const nextStarProgress = Math.min(100, (currentProgress % 1) * 100)
 
   return (
@@ -85,7 +96,7 @@ export default function ProfilePage() {
       {/* Publisher Rating Card - Enhanced */}
       <Card className="overflow-hidden border-0 shadow-xl">
         {/* Header with Tier-Based Gradient */}
-        <div className={`${tier.background} px-6 py-8 relative overflow-hidden`}>
+        <div className={`${tierBackground} px-6 py-8 relative overflow-hidden`}>
           {/* Animated background pattern */}
           <div className="absolute inset-0 opacity-10">
             <div className="absolute top-0 left-0 w-40 h-40 bg-white rounded-full -translate-x-1/2 -translate-y-1/2"></div>
@@ -101,19 +112,24 @@ export default function ProfilePage() {
               <p className="text-white/80 text-sm max-w-md">
                 Your performance score based on followers, articles, and engagement
               </p>
-              <div className={`inline-block mt-3 px-4 py-1.5 rounded-full ${tier.border} border-2 bg-white/10 backdrop-blur-sm`}>
-                <span className="text-white font-bold text-lg">{tier.name} Tier</span>
+              <div className={`inline-block mt-3 px-4 py-1.5 rounded-full ${tierBorder} border-2 bg-white/10 backdrop-blur-sm`}>
+                <span className="text-white font-bold text-lg">{tierName}{hasRatingData ? ' Tier' : ''}</span>
               </div>
             </div>
             
             {/* Large Star Badge */}
-            {!ratingLoading && (
+            {!ratingLoading && hasRatingData && (
               <StarBadgeLarge 
                 stars={stars} 
                 maxStars={maxStars} 
                 showProgress={true}
                 progressPercent={nextStarProgress}
               />
+            )}
+            {!ratingLoading && !hasRatingData && (
+              <div className="px-4 py-2 rounded-xl bg-white/20 backdrop-blur-sm text-white font-semibold">
+                Rating unavailable
+              </div>
             )}
           </div>
         </div>
@@ -167,6 +183,11 @@ export default function ProfilePage() {
           {ratingLoading ? (
             <div className="flex items-center justify-center py-12">
               <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : ratingError ? (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6">
+              <h3 className="text-lg font-semibold text-rose-700">Publisher rating is unavailable</h3>
+              <p className="mt-2 text-sm text-rose-600">{ratingError}</p>
             </div>
           ) : (
             <>

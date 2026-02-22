@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/auth-context'
+import { API_URL, getToken } from '@/lib/api'
 import { 
   DollarSign, 
   TrendingUp, 
@@ -87,6 +88,7 @@ export default function RevenuePage() {
   const [commissionInfo, setCommissionInfo] = useState<CommissionInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [earningsLoading, setEarningsLoading] = useState(true)
+  const [apiError, setApiError] = useState<string | null>(null)
   
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [showWithdrawModal, setShowWithdrawModal] = useState(false)
@@ -139,6 +141,7 @@ export default function RevenuePage() {
   ]
 
   useEffect(() => {
+    setApiError(null)
     fetchPaymentDetails()
     fetchWithdrawals()
     fetchEarnings()
@@ -147,9 +150,15 @@ export default function RevenuePage() {
 
   const fetchPaymentDetails = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_PUBLISHERS_API}/api/payment-details`, {
+      const token = getToken()
+      if (!token) {
+        setApiError('Authentication is required to load revenue data.')
+        return
+      }
+
+      const response = await fetch(`${API_URL}/api/payment-details`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          'Authorization': `Bearer ${token}`
         }
       })
       if (response.ok) {
@@ -162,9 +171,13 @@ export default function RevenuePage() {
             phoneNumber: data.phoneNumber
           })
         }
+      } else {
+        const error = await response.json().catch(() => null)
+        setApiError(error?.message || 'Failed to load payment details.')
       }
     } catch (error) {
       console.error('Failed to fetch payment details:', error)
+      setApiError('Failed to load payment details.')
     } finally {
       setLoading(false)
     }
@@ -172,17 +185,27 @@ export default function RevenuePage() {
 
   const fetchWithdrawals = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_PUBLISHERS_API}/api/withdrawals`, {
+      const token = getToken()
+      if (!token) {
+        setApiError('Authentication is required to load withdrawal history.')
+        return
+      }
+
+      const response = await fetch(`${API_URL}/api/withdrawals`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          'Authorization': `Bearer ${token}`
         }
       })
       if (response.ok) {
         const result = await response.json()
         setWithdrawals(result.data || result || [])
+      } else {
+        const error = await response.json().catch(() => null)
+        setApiError(error?.message || 'Failed to load withdrawal history.')
       }
     } catch (error) {
       console.error('Failed to fetch withdrawals:', error)
+      setApiError('Failed to load withdrawal history.')
     }
   }
 
@@ -205,17 +228,27 @@ export default function RevenuePage() {
   const fetchEarnings = async () => {
     try {
       setEarningsLoading(true)
-      const response = await fetch(`${process.env.NEXT_PUBLIC_PUBLISHERS_API}/api/my-earnings`, {
+      const token = getToken()
+      if (!token) {
+        setApiError('Authentication is required to load earnings.')
+        return
+      }
+
+      const response = await fetch(`${API_URL}/api/my-earnings`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          'Authorization': `Bearer ${token}`
         }
       })
       if (response.ok) {
         const result = await response.json()
         setEarnings(result.data || result)
+      } else {
+        const error = await response.json().catch(() => null)
+        setApiError(error?.message || 'Failed to load earnings data.')
       }
     } catch (error) {
       console.error('Failed to fetch earnings:', error)
+      setApiError('Failed to load earnings data.')
     } finally {
       setEarningsLoading(false)
     }
@@ -223,17 +256,27 @@ export default function RevenuePage() {
 
   const fetchCommissionInfo = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_PUBLISHERS_API}/api/commission-info`, {
+      const token = getToken()
+      if (!token) {
+        setApiError('Authentication is required to load commission details.')
+        return
+      }
+
+      const response = await fetch(`${API_URL}/api/commission-info`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          'Authorization': `Bearer ${token}`
         }
       })
       if (response.ok) {
         const result = await response.json()
         setCommissionInfo(result.data || result)
+      } else {
+        const error = await response.json().catch(() => null)
+        setApiError(error?.message || 'Failed to load commission information.')
       }
     } catch (error) {
       console.error('Failed to fetch commission info:', error)
+      setApiError('Failed to load commission information.')
     }
   }
 
@@ -256,11 +299,12 @@ export default function RevenuePage() {
     setValidationErrors([])
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_PUBLISHERS_API}/api/payment-details`, {
+      const token = getToken()
+      const response = await fetch(`${API_URL}/api/payment-details`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           paymentMethod: 'mobile_money',
@@ -320,11 +364,12 @@ export default function RevenuePage() {
     setValidationErrors([])
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_PUBLISHERS_API}/api/withdraw`, {
+      const token = getToken()
+      const response = await fetch(`${API_URL}/api/withdraw`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           amount: parseFloat(withdrawAmount)
@@ -387,6 +432,12 @@ export default function RevenuePage() {
           Export Report
         </button>
       </div>
+
+      {apiError && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-4">
+          <p className="text-sm font-medium text-rose-700">{apiError}</p>
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

@@ -6,21 +6,26 @@ import { Bell, Search, Menu, User, LogOut, Settings, Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/auth-context'
 import { StarBadgeCompact } from '@/components/star-badge'
+import { API_URL, getToken } from '@/lib/api'
 
 export function Header() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
   const [stars, setStars] = useState<number>(0)
+  const [ratingError, setRatingError] = useState<string | null>(null)
   const { user, logout } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
     const fetchRating = async () => {
       try {
-        const token = localStorage.getItem('auth_token')
-        if (!token) return
+        const token = getToken()
+        if (!token) {
+          setRatingError('Not authenticated')
+          return
+        }
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_PUBLISHERS_API || 'http://localhost:3003'}/api/rating/my-rating`, {
+        const response = await fetch(`${API_URL}/api/rating/my-rating`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -30,10 +35,19 @@ export function Header() {
           const result = await response.json()
           // Handle both response formats
           const data = result.data || result
-          setStars(data.starRating || 0)
+          if (data && typeof data === 'object' && data.starRating !== undefined) {
+            setStars(data.starRating || 0)
+            setRatingError(null)
+          } else {
+            setRatingError('Rating unavailable')
+          }
+        } else {
+          const error = await response.json().catch(() => null)
+          setRatingError(error?.message || 'Rating unavailable')
         }
       } catch (err) {
         console.error('Error fetching rating:', err)
+        setRatingError('Rating unavailable')
       }
     }
 
@@ -122,7 +136,11 @@ export function Header() {
                   {user?.username || 'User'}
                 </span>
                 <span className="ml-2">
-                  <StarBadgeCompact stars={stars} size="sm" />
+                  {ratingError ? (
+                    <span className="text-xs text-slate-500">Rating unavailable</span>
+                  ) : (
+                    <StarBadgeCompact stars={stars} size="sm" />
+                  )}
                 </span>
               </span>
             </button>
@@ -133,7 +151,11 @@ export function Header() {
                 <div className="px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-purple-50 to-pink-50">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-semibold text-slate-900">{user?.username}</p>
-                    <StarBadgeCompact stars={stars} size="sm" />
+                    {ratingError ? (
+                      <span className="text-xs text-slate-500">Rating unavailable</span>
+                    ) : (
+                      <StarBadgeCompact stars={stars} size="sm" />
+                    )}
                   </div>
                   <p className="text-xs text-slate-600 truncate mt-0.5">{user?.email}</p>
                 </div>
@@ -162,8 +184,6 @@ export function Header() {
     </div>
   )
 }
-
-
 
 
 
