@@ -124,9 +124,11 @@ export default function SettingsPage() {
   }, [])
 
   // Get setting value by key
-  const getSetting = (key: string): number => {
+  const getSetting = (key: string): number | undefined => {
     const setting = ratingSettings.find(s => s.settingKey === key)
-    return setting ? parseFloat(setting.settingValue) : 0
+    if (!setting) return undefined
+    const parsed = parseFloat(setting.settingValue)
+    return Number.isFinite(parsed) ? parsed : undefined
   }
 
   const stars = rating?.starRating || 0
@@ -148,17 +150,17 @@ export default function SettingsPage() {
   const progressToNext = rating?.progressToNext || 0
   
   // Points per activity settings
-  const pointsPerFollower = rating?.pointsPerFollower || getSetting('points_per_follower') || 10
-  const pointsPerArticle = rating?.pointsPerArticle || getSetting('points_per_article') || 5
-  const pointsPerLike = rating?.pointsPerLike || getSetting('points_per_like') || 1
-  const pointsPerShare = rating?.pointsPerShare || getSetting('points_per_share') || 2
+  const pointsPerFollower = rating?.pointsPerFollower ?? getSetting('points_per_follower') ?? 10
+  const pointsPerArticle = rating?.pointsPerArticle ?? getSetting('points_per_article') ?? 5
+  const pointsPerLike = rating?.pointsPerLike ?? getSetting('points_per_like') ?? 1
+  const pointsPerShare = rating?.pointsPerShare ?? getSetting('points_per_share') ?? 0
   
   // Points thresholds for star levels
-  const pointsFor1Star = rating?.pointsFor1Star || getSetting('points_for_1_star') || 50
-  const pointsFor2Stars = rating?.pointsFor2Stars || getSetting('points_for_2_stars') || 150
-  const pointsFor3Stars = rating?.pointsFor3Stars || getSetting('points_for_3_stars') || 300
-  const pointsFor4Stars = rating?.pointsFor4Stars || getSetting('points_for_4_stars') || 500
-  const pointsFor5Stars = rating?.pointsFor5Stars || getSetting('points_for_5_stars') || 1000
+  const pointsFor1Star = rating?.pointsFor1Star ?? getSetting('points_for_1_star') ?? 50
+  const pointsFor2Stars = rating?.pointsFor2Stars ?? getSetting('points_for_2_stars') ?? 150
+  const pointsFor3Stars = rating?.pointsFor3Stars ?? getSetting('points_for_3_stars') ?? 300
+  const pointsFor4Stars = rating?.pointsFor4Stars ?? getSetting('points_for_4_stars') ?? 500
+  const pointsFor5Stars = rating?.pointsFor5Stars ?? getSetting('points_for_5_stars') ?? 1000
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
