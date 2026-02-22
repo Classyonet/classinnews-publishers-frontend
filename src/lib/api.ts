@@ -1,8 +1,12 @@
-const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://classinnews-publishers-backend.onrender.com'
+const RAW_API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.NEXT_PUBLIC_PUBLISHERS_API ||
+  'https://classinnews-publishers-backend.onrender.com'
 export const API_URL = RAW_API_URL.replace(/\/+$/, '') // Remove trailing slashes
 
 console.log('🔧 API Configuration:', {
   'process.env.NEXT_PUBLIC_API_URL': process.env.NEXT_PUBLIC_API_URL,
+  'process.env.NEXT_PUBLIC_PUBLISHERS_API': process.env.NEXT_PUBLIC_PUBLISHERS_API,
   'API_URL': API_URL
 })
 
@@ -329,8 +333,6 @@ export const mediaAPI = {
 }
 
 export default apiFetch
-
-
 
 
 
