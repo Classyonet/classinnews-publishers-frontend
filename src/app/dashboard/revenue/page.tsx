@@ -50,6 +50,9 @@ interface CommissionInfo {
   rate: number
   tierName: string
   starRating: number
+  totalEarnings?: number
+  withdrawnAmount?: number
+  availableBalance?: number
   tierRates?: Array<{
     key: string
     tier: string
@@ -101,6 +104,7 @@ export default function RevenuePage() {
   
   const [withdrawAmount, setWithdrawAmount] = useState('')
   const [validationErrors, setValidationErrors] = useState<string[]>([])
+  const minWithdrawalAmount = 50
   const defaultTierRates = [
     { key: 'commission_new_tier', tier: 'New', stars: 0, rate: 30 },
     { key: 'commission_starter_tier', tier: 'Starter', stars: 1, rate: 25 },
@@ -139,6 +143,12 @@ export default function RevenuePage() {
       change: earnings ? `${earnings.currentWeek.articles.length} articles` : 'Processing'
     }
   ]
+
+  const totalEarningsAmount = earnings?.total?.total ?? commissionInfo?.totalEarnings ?? 0
+  const reservedWithdrawalAmount = commissionInfo?.withdrawnAmount ?? withdrawals
+    .filter((withdrawal) => withdrawal.status !== 'rejected')
+    .reduce((sum, withdrawal) => sum + (Number(withdrawal.amount) || 0), 0)
+  const availableBalance = Math.max(0, totalEarningsAmount - reservedWithdrawalAmount)
 
   useEffect(() => {
     setApiError(null)
@@ -347,6 +357,13 @@ export default function RevenuePage() {
     const amount = parseFloat(withdrawAmount)
     if (!withdrawAmount || isNaN(amount) || amount <= 0) {
       errors.push('Please enter a valid amount')
+    } else {
+      if (amount < minWithdrawalAmount) {
+        errors.push(`Minimum withdrawal amount is GHC ${minWithdrawalAmount.toFixed(2)}`)
+      }
+      if (amount > availableBalance) {
+        errors.push(`Insufficient available balance. You can withdraw up to GHC ${availableBalance.toFixed(2)}`)
+      }
     }
     
     return errors
@@ -378,7 +395,7 @@ export default function RevenuePage() {
 
       if (response.ok) {
         await response.json()
-        await fetchWithdrawals()
+        await Promise.all([fetchWithdrawals(), fetchCommissionInfo()])
         setShowWithdrawModal(false)
         setWithdrawAmount('')
         alert('Withdrawal request submitted successfully!')
@@ -629,7 +646,7 @@ export default function RevenuePage() {
           )}
           
           <div className="text-sm text-slate-600 space-y-2 p-4 bg-slate-50 rounded-xl mt-4">
-            <p><strong className="text-slate-900">Minimum Payout:</strong> $50.00</p>
+            <p><strong className="text-slate-900">Minimum Payout:</strong> GHC 50.00</p>
             <p><strong className="text-slate-900">Payment Schedule:</strong> Upon approval</p>
             <p><strong className="text-slate-900">Processing Time:</strong> 5-7 business days</p>
           </div>
@@ -649,11 +666,11 @@ export default function RevenuePage() {
               </div>
               <h4 className="font-bold text-slate-900 mb-2">Available Balance</h4>
               <p className="text-3xl font-bold text-slate-900 mb-4">
-                $0.00
+                GHC {availableBalance.toFixed(2)}
               </p>
               <button 
                 onClick={() => setShowWithdrawModal(true)}
-                disabled={!paymentDetails?.isComplete}
+                disabled={!paymentDetails?.isComplete || availableBalance <= 0}
                 className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold shadow-lg shadow-purple-500/40 hover:shadow-xl hover:shadow-purple-500/50 hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
                 Withdraw Cash
@@ -662,6 +679,11 @@ export default function RevenuePage() {
               {!paymentDetails?.isComplete && (
                 <p className="text-xs text-amber-600 mt-3 font-medium">
                   Complete your payment details to enable withdrawals
+                </p>
+              )}
+              {paymentDetails?.isComplete && availableBalance <= 0 && (
+                <p className="text-xs text-slate-600 mt-3 font-medium">
+                  No withdrawable balance yet
                 </p>
               )}
             </div>
@@ -809,7 +831,7 @@ export default function RevenuePage() {
                       {new Date(withdrawal.requestDate).toLocaleDateString()}
                     </td>
                     <td className="py-3 px-4 text-sm font-semibold text-slate-900">
-                      ${withdrawal.amount.toFixed(2)}
+                      GHC {(Number(withdrawal.amount) || 0).toFixed(2)}
                     </td>
                     <td className="py-3 px-4">
                       {getStatusBadge(withdrawal.status)}
