@@ -84,6 +84,7 @@ interface EarningsData {
 export default function RevenuePage() {
   const { user } = useAuth()
   const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  const revenueBuildTag = '2026-02-23-r1'
   
   const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | null>(null)
   const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([])
@@ -443,6 +444,7 @@ export default function RevenuePage() {
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">Revenue</h1>
           <p className="text-slate-600 mt-1">Track your earnings and payment history</p>
+          <p className="text-xs text-slate-400 mt-1">Build {revenueBuildTag}</p>
         </div>
         <button className="px-4 py-2.5 bg-white text-purple-600 border border-purple-200 rounded-xl font-medium shadow-md hover:bg-purple-50 hover:shadow-lg transition-all flex items-center gap-2">
           <Download className="h-4 w-4" />
