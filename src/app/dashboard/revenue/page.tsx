@@ -670,6 +670,8 @@ export default function RevenuePage() {
               <p className="text-3xl font-bold text-slate-900 mb-4">
                 GHC {availableBalance.toFixed(2)}
               </p>
+              <p className="text-xs text-slate-600">Total generated: GHC {totalEarningsAmount.toFixed(2)}</p>
+              <p className="text-xs text-slate-600 mb-4">Reserved (requested/paid): GHC {reservedWithdrawalAmount.toFixed(2)}</p>
               <button 
                 onClick={() => setShowWithdrawModal(true)}
                 disabled={!paymentDetails?.isComplete || availableBalance <= 0}
