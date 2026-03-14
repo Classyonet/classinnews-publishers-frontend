@@ -5,9 +5,8 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { PUBLISHERS_API_URL as API_URL } from '@/lib/api-config'
 import { CheckCircle, XCircle, Loader2, Mail } from 'lucide-react'
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003'
 
 export default function VerifyEmailPage() {
   return (

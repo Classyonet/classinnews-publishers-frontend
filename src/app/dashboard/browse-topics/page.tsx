@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { ADMIN_API_URL } from '@/lib/api-config'
 import { Search, TrendingUp, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,7 +22,6 @@ export default function BrowseTopicsPage() {
   const [topics, setTopics] = useState<TrendingTopic[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
-  const ADMIN_API_URL = process.env.NEXT_PUBLIC_ADMIN_API_URL || 'https://classinnews-admin-backend.onrender.com'
 
   useEffect(() => {
     fetchTopics()

@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://classinnews-publishers-backend.onrender.com'
+import { PUBLISHERS_API_URL as API_URL } from '@/lib/api-config'
 
 export default function RegisterPage() {
   const { register } = useAuth()

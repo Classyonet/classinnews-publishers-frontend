@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
+import { PUBLISHERS_API_URL } from '@/lib/api-config'
 
 export default function AuthCallbackPage() {
   return (
@@ -30,7 +31,7 @@ function AuthCallbackContent() {
       }
 
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://classinnews-publishers-backend.onrender.com'
+        const API_URL = PUBLISHERS_API_URL
         
         // Fetch user data
         const response = await fetch(`${API_URL}/api/auth/me`, {

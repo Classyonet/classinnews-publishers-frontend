@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { 
+import {
   Upload, 
   Image as ImageIcon, 
   Video, 
@@ -18,6 +18,7 @@ import {
   X
 } from 'lucide-react'
 import { mediaAPI } from '@/lib/api'
+import { PUBLISHERS_API_URL } from '@/lib/api-config'
 import { getMediaUrl } from '@/lib/media'
 
 interface Media {
@@ -139,7 +140,7 @@ export default function MediaPage() {
   }
 
   const copyToClipboard = (url: string) => {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const API_URL = PUBLISHERS_API_URL;
     const fullUrl = `${API_URL}${url}`
     navigator.clipboard.writeText(fullUrl)
     alert('URL copied to clipboard!')

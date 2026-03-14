@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { InboxIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '@/contexts/auth-context'
+import { PUBLISHERS_API_URL } from '@/lib/api-config'
 
 interface Message {
   id: string
@@ -42,7 +43,7 @@ export default function MessagesPage() {
     setIsLoading(true)
     setError(null)
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003'
+      const apiUrl = PUBLISHERS_API_URL
       console.log('Fetching messages with token:', token)
       const res = await fetch(`${apiUrl}/api/messages`, { 
         headers: { 
@@ -68,7 +69,7 @@ export default function MessagesPage() {
 
   async function markRead(id: string) {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003'
+      const apiUrl = PUBLISHERS_API_URL
       console.log('Marking message as read:', id)
       const res = await fetch(`${apiUrl}/api/messages/${id}/read`, {
         method: 'PATCH',

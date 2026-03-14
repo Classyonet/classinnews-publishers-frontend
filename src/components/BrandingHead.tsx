@@ -1,8 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-
-const ADMIN_API_URL = process.env.NEXT_PUBLIC_ADMIN_API_URL || 'https://classinnews-admin-backend.onrender.com'
+import { ADMIN_API_URL } from '@/lib/api-config'
 
 export function BrandingHead() {
   useEffect(() => {

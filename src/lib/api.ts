@@ -1,7 +1,7 @@
+import { PUBLISHERS_API_URL } from './api-config'
+
 const RAW_API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  process.env.NEXT_PUBLIC_PUBLISHERS_API ||
-  'https://classinnews-publishers-backend.onrender.com'
+  PUBLISHERS_API_URL
 export const API_URL = RAW_API_URL.replace(/\/+$/, '') // Remove trailing slashes
 
 console.log('🔧 API Configuration:', {
@@ -333,7 +333,6 @@ export const mediaAPI = {
 }
 
 export default apiFetch
-
 
 
 
