@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/auth-context'
-import { API_URL, getToken } from '@/lib/api'
+import { publisherAuthFetch } from '@/lib/publisher-session'
 import { 
   DollarSign, 
   TrendingUp, 
@@ -82,7 +82,7 @@ interface EarningsData {
 }
 
 export default function RevenuePage() {
-  const { user } = useAuth()
+  const { user, token, isLoading: authLoading } = useAuth()
   const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
   const revenueBuildTag = '2026-02-23-r1'
   
@@ -152,26 +152,27 @@ export default function RevenuePage() {
   const availableBalance = Math.max(0, totalEarningsAmount - reservedWithdrawalAmount)
 
   useEffect(() => {
+    if (authLoading) {
+      return
+    }
+
+    if (!token) {
+      setApiError('Authentication is required to load revenue data.')
+      setLoading(false)
+      setEarningsLoading(false)
+      return
+    }
+
     setApiError(null)
     fetchPaymentDetails()
     fetchWithdrawals()
     fetchEarnings()
     fetchCommissionInfo()
-  }, [])
+  }, [authLoading, token])
 
   const fetchPaymentDetails = async () => {
     try {
-      const token = getToken()
-      if (!token) {
-        setApiError('Authentication is required to load revenue data.')
-        return
-      }
-
-      const response = await fetch(`${API_URL}/api/payment-details`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
+      const response = await publisherAuthFetch('/api/payment-details')
       if (response.ok) {
         const result = await response.json()
         const data = result.data || result
@@ -196,17 +197,7 @@ export default function RevenuePage() {
 
   const fetchWithdrawals = async () => {
     try {
-      const token = getToken()
-      if (!token) {
-        setApiError('Authentication is required to load withdrawal history.')
-        return
-      }
-
-      const response = await fetch(`${API_URL}/api/withdrawals`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
+      const response = await publisherAuthFetch('/api/withdrawals')
       if (response.ok) {
         const result = await response.json()
         setWithdrawals(result.data || result || [])
@@ -239,17 +230,7 @@ export default function RevenuePage() {
   const fetchEarnings = async () => {
     try {
       setEarningsLoading(true)
-      const token = getToken()
-      if (!token) {
-        setApiError('Authentication is required to load earnings.')
-        return
-      }
-
-      const response = await fetch(`${API_URL}/api/my-earnings`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
+      const response = await publisherAuthFetch('/api/my-earnings')
       if (response.ok) {
         const result = await response.json()
         setEarnings(result.data || result)
@@ -267,17 +248,7 @@ export default function RevenuePage() {
 
   const fetchCommissionInfo = async () => {
     try {
-      const token = getToken()
-      if (!token) {
-        setApiError('Authentication is required to load commission details.')
-        return
-      }
-
-      const response = await fetch(`${API_URL}/api/commission-info`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
+      const response = await publisherAuthFetch('/api/commission-info')
       if (response.ok) {
         const result = await response.json()
         setCommissionInfo(result.data || result)
@@ -310,12 +281,10 @@ export default function RevenuePage() {
     setValidationErrors([])
 
     try {
-      const token = getToken()
-      const response = await fetch(`${API_URL}/api/payment-details`, {
+      const response = await publisherAuthFetch('/api/payment-details', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           paymentMethod: 'mobile_money',
@@ -382,12 +351,10 @@ export default function RevenuePage() {
     setValidationErrors([])
 
     try {
-      const token = getToken()
-      const response = await fetch(`${API_URL}/api/withdraw`, {
+      const response = await publisherAuthFetch('/api/withdraw', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           amount: parseFloat(withdrawAmount)

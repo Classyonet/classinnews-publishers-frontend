@@ -1,14 +1,22 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { authAPI, setToken, removeToken } from '@/lib/api'
+import { authAPI } from '@/lib/api'
+import {
+  clearStoredPublisherSession,
+  fetchCurrentPublisher,
+  getStoredPublisherUser,
+  logoutPublisherSession,
+  PUBLISHER_SESSION_PLACEHOLDER,
+  storePublisherUser,
+} from '@/lib/publisher-session'
 
 interface User {
   id: string
-  email: string
-  username: string
-  role: string
-  avatarUrl?: string
+  email?: string | null
+  username?: string | null
+  role?: string | null
+  avatarUrl?: string | null
 }
 
 interface AuthContextType {
@@ -17,8 +25,8 @@ interface AuthContextType {
   isLoading: boolean
   login: (email: string, password: string) => Promise<void>
   register: (email: string, username: string, password: string) => Promise<any>
-  logout: () => void
-  setTokenAndUser: (token: string, user: User) => Promise<void>
+  logout: () => Promise<void>
+  setAuthenticatedUser: (user: User) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -29,20 +37,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Check if user is logged in on mount
+    const cachedUser = getStoredPublisherUser()
+    if (cachedUser) {
+      setUser(cachedUser)
+      setTokenState(PUBLISHER_SESSION_PLACEHOLDER)
+    }
+
     const checkAuth = async () => {
       try {
-        // Get token from localStorage
-        const storedToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
-        if (storedToken) {
-          setTokenState(storedToken)
-          const userData = await authAPI.me()
-          setUser(userData)
+        const userData = await fetchCurrentPublisher()
+        if (userData) {
+          setUser(userData as User)
+          setTokenState(PUBLISHER_SESSION_PLACEHOLDER)
+        } else {
+          setUser(null)
+          setTokenState(null)
         }
       } catch (error) {
         console.error('Auth check failed:', error)
-        // Clear invalid token
-        removeToken()
+        clearStoredPublisherSession()
+        setUser(null)
         setTokenState(null)
       } finally {
         setIsLoading(false)
@@ -54,9 +68,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const response = await authAPI.login(email, password)
-    setToken(response.token)
-    setTokenState(response.token)
-    setUser(response.user)
+    const userData = response.user
+    storePublisherUser(userData)
+    setTokenState(PUBLISHER_SESSION_PLACEHOLDER)
+    setUser(userData)
   }
 
   const register = async (email: string, username: string, password: string) => {
@@ -66,20 +81,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return response // Return the response with success message
   }
 
-  const logout = () => {
-    removeToken()
+  const logout = async () => {
+    await logoutPublisherSession()
     setTokenState(null)
     setUser(null)
   }
 
-  const setTokenAndUser = async (newToken: string, userData: User) => {
-    setToken(newToken)
-    setTokenState(newToken)
+  const setAuthenticatedUser = async (userData: User) => {
+    storePublisherUser(userData)
+    setTokenState(PUBLISHER_SESSION_PLACEHOLDER)
     setUser(userData)
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, register, logout, setTokenAndUser }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, register, logout, setAuthenticatedUser }}>
       {children}
     </AuthContext.Provider>
   )

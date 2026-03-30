@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { StarBadgeLarge, getTierInfo } from '@/components/star-badge'
 import { Star, TrendingUp, Users, FileText, Heart, Share2, ThumbsUp, Award, Target, Zap } from 'lucide-react'
-import { API_URL, getToken } from '@/lib/api'
+import { publisherAuthFetch } from '@/lib/publisher-session'
 
 interface RatingData {
   starRating: number
@@ -24,7 +24,7 @@ interface RatingData {
 }
 
 export default function ProfilePage() {
-  const { user, logout } = useAuth()
+  const { user, logout, token, isLoading: authLoading } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [rating, setRating] = useState<RatingData | null>(null)
   const [ratingLoading, setRatingLoading] = useState(true)
@@ -33,19 +33,18 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const fetchRating = async () => {
+      if (authLoading) {
+        return
+      }
+
       try {
         setRatingLoading(true)
-        const token = getToken()
         if (!token) {
           setRatingError('Not authenticated')
           return
         }
 
-        const response = await fetch(`${API_URL}/api/rating/my-rating`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        })
+        const response = await publisherAuthFetch('/api/rating/my-rating')
 
         if (response.ok) {
           const result = await response.json()
@@ -70,7 +69,7 @@ export default function ProfilePage() {
     }
 
     fetchRating()
-  }, [])
+  }, [authLoading, token])
 
   const stars = rating?.starRating || 0
   const maxStars = rating?.maxStars || 5

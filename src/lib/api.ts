@@ -1,14 +1,12 @@
 import { PUBLISHERS_API_URL } from './api-config'
+import {
+  clearStoredPublisherSession,
+  getStoredPublisherUser,
+  PUBLISHER_SESSION_PLACEHOLDER,
+} from './publisher-session'
 
-const RAW_API_URL =
-  PUBLISHERS_API_URL
+const RAW_API_URL = PUBLISHERS_API_URL
 export const API_URL = RAW_API_URL.replace(/\/+$/, '') // Remove trailing slashes
-
-console.log('🔧 API Configuration:', {
-  'process.env.NEXT_PUBLIC_API_URL': process.env.NEXT_PUBLIC_API_URL,
-  'process.env.NEXT_PUBLIC_PUBLISHERS_API': process.env.NEXT_PUBLIC_PUBLISHERS_API,
-  'API_URL': API_URL
-})
 
 export async function apiFetch(path: string, options: RequestInit = {}) {
   const headers: HeadersInit = {
@@ -17,10 +15,10 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
   }
 
   const fullUrl = `${API_URL}${path}`
-  console.log('🌐 API Request:', fullUrl)
 
   const res = await fetch(fullUrl, {
     ...options,
+    credentials: 'include',
     headers
   })
 
@@ -35,27 +33,20 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
 }
 
 export function setAuthHeader(token?: string) {
-  return token ? { Authorization: `Bearer ${token}` } : {}
+  return token && token !== PUBLISHER_SESSION_PLACEHOLDER ? { Authorization: `Bearer ${token}` } : {}
 }
 
-// Token management
-export function setToken(token: string) {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('auth_token', token)
-  }
+// Legacy compatibility helpers during the cookie-session migration.
+export function setToken(_token: string) {
+  // Session is now managed by an httpOnly cookie.
 }
 
 export function getToken(): string | null {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('auth_token')
-  }
-  return null
+  return getStoredPublisherUser() ? PUBLISHER_SESSION_PLACEHOLDER : null
 }
 
 export function removeToken() {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('auth_token')
-  }
+  clearStoredPublisherSession()
 }
 
 // Auth API
@@ -63,6 +54,7 @@ export const authAPI = {
   async login(email: string, password: string) {
     const response = await fetch(`${API_URL}/api/auth/login`, {
       method: 'POST',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },
@@ -77,12 +69,13 @@ export const authAPI = {
     }
 
     const data = await response.json()
-    return data
+    return data.user ? data : { ...data, user: data.data?.user || data.user }
   },
 
   async register(email: string, username: string, password: string) {
     const response = await fetch(`${API_URL}/api/auth/register`, {
       method: 'POST',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },
@@ -99,15 +92,8 @@ export const authAPI = {
   },
 
   async me() {
-    const token = getToken()
-    if (!token) {
-      throw new Error('No token found')
-    }
-
     const response = await fetch(`${API_URL}/api/auth/me`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
+      credentials: 'include',
     })
 
     if (!response.ok) {
@@ -333,12 +319,3 @@ export const mediaAPI = {
 }
 
 export default apiFetch
-
-
-
-
-
-
-
-
-

@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
-import { PUBLISHERS_API_URL } from '@/lib/api-config'
+import { fetchCurrentPublisher } from '@/lib/publisher-session'
 
 export default function AuthCallbackPage() {
   return (
@@ -16,47 +16,19 @@ export default function AuthCallbackPage() {
 function AuthCallbackContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { setTokenAndUser } = useAuth()
+  const { setAuthenticatedUser } = useAuth()
   const [status, setStatus] = useState('Processing login...')
 
   useEffect(() => {
     const handleAuth = async () => {
-      const token = searchParams.get('token')
       const provider = searchParams.get('provider')
 
-      if (!token) {
-        setStatus('Authentication failed. No token received.')
-        setTimeout(() => router.push('/auth/login?error=no_token'), 2000)
-        return
-      }
-
       try {
-        const API_URL = PUBLISHERS_API_URL
-        
-        // Fetch user data
-        const response = await fetch(`${API_URL}/api/auth/me`, {
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        })
+        const user = await fetchCurrentPublisher()
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-
-        const data = await response.json()
-        
-        if (data.id || data.user) {
-          const user = data.user || data
-          
-          // Use the auth context to set token and user
-          // This should handle storage internally
-          await setTokenAndUser(token, user)
-          
-          setStatus(`Welcome back${user.name ? `, ${user.name}` : ''}! Redirecting to dashboard...`)
-          
-          // Small delay for better UX
+        if (user?.id) {
+          await setAuthenticatedUser(user)
+          setStatus(`Welcome back${user.username ? `, ${user.username}` : ''}! Redirecting to dashboard...`)
           setTimeout(() => {
             router.push('/dashboard')
           }, 1000)
@@ -71,7 +43,7 @@ function AuthCallbackContent() {
     }
 
     handleAuth()
-  }, [searchParams, router, setTokenAndUser])
+  }, [searchParams, router, setAuthenticatedUser])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500">

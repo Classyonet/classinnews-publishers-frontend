@@ -6,30 +6,29 @@ import { Bell, Search, Menu, User, LogOut, Settings, Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/auth-context'
 import { StarBadgeCompact } from '@/components/star-badge'
-import { API_URL, getToken } from '@/lib/api'
+import { publisherAuthFetch } from '@/lib/publisher-session'
 
 export function Header() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
   const [stars, setStars] = useState<number>(0)
   const [ratingError, setRatingError] = useState<string | null>(null)
-  const { user, logout } = useAuth()
+  const { user, logout, token, isLoading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
     const fetchRating = async () => {
+      if (isLoading) {
+        return
+      }
+
       try {
-        const token = getToken()
         if (!token) {
           setRatingError('Not authenticated')
           return
         }
 
-        const response = await fetch(`${API_URL}/api/rating/my-rating`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        })
+        const response = await publisherAuthFetch('/api/rating/my-rating')
 
         if (response.ok) {
           const result = await response.json()
@@ -52,10 +51,10 @@ export function Header() {
     }
 
     fetchRating()
-  }, [])
+  }, [isLoading, token])
 
   const handleLogout = () => {
-    logout()
+    void logout()
     router.push('/auth/login')
   }
 
@@ -184,7 +183,6 @@ export function Header() {
     </div>
   )
 }
-
 
 
 

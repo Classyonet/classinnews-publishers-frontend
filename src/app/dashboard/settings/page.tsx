@@ -38,7 +38,7 @@ import {
 import { useAuth } from '@/contexts/auth-context'
 import { useTheme } from '@/contexts/theme-context'
 import { StarBadgeLarge, getTierInfo } from '@/components/star-badge'
-import { API_URL, getToken } from '@/lib/api'
+import { publisherAuthFetch } from '@/lib/publisher-session'
 
 interface RatingSetting {
   settingKey: string
@@ -48,7 +48,7 @@ interface RatingSetting {
 }
 
 export default function SettingsPage() {
-  const { user } = useAuth()
+  const { user, token, isLoading: authLoading } = useAuth()
   const { theme, setTheme } = useTheme()
   const [activeTab, setActiveTab] = useState('profile')
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
@@ -63,10 +63,13 @@ export default function SettingsPage() {
   // Fetch rating data and settings
   useEffect(() => {
     const fetchRatingData = async () => {
+      if (authLoading) {
+        return
+      }
+
       try {
         setRatingLoading(true)
         setRatingError(null)
-        const token = getToken()
         if (!token) {
           setRatingError('Not authenticated. Please sign in again to view your rating.')
           return
@@ -74,12 +77,8 @@ export default function SettingsPage() {
 
         // Fetch rating and settings in parallel
         const [ratingRes, settingsRes] = await Promise.all([
-          fetch(`${API_URL}/api/rating/my-rating`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          }),
-          fetch(`${API_URL}/api/rating/rating-info`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          })
+          publisherAuthFetch('/api/rating/my-rating'),
+          publisherAuthFetch('/api/rating/rating-info')
         ])
 
         let ratingFetchError: string | null = null
@@ -121,7 +120,7 @@ export default function SettingsPage() {
     }
 
     fetchRatingData()
-  }, [])
+  }, [authLoading, token])
 
   // Get setting value by key
   const getSetting = (key: string): number | undefined => {
@@ -615,7 +614,7 @@ export default function SettingsPage() {
                         </label>
                         <input
                           type="text"
-                          defaultValue={user?.username}
+                          defaultValue={user?.username ?? ''}
                           className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:ring-4 focus:ring-purple-500/20 focus:border-purple-500 transition-all bg-white/50 backdrop-blur-sm"
                         />
                       </div>
@@ -626,7 +625,7 @@ export default function SettingsPage() {
                         </label>
                         <input
                           type="email"
-                          defaultValue={user?.email}
+                          defaultValue={user?.email ?? ''}
                           className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:ring-4 focus:ring-purple-500/20 focus:border-purple-500 transition-all bg-white/50 backdrop-blur-sm"
                         />
                       </div>

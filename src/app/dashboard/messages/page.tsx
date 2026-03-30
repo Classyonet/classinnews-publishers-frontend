@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { InboxIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '@/contexts/auth-context'
-import { PUBLISHERS_API_URL } from '@/lib/api-config'
+import { publisherAuthFetch } from '@/lib/publisher-session'
 
 interface Message {
   id: string
@@ -18,13 +18,17 @@ interface Message {
 }
 
 export default function MessagesPage() {
-  const { token } = useAuth()
+  const { token, isLoading: authLoading } = useAuth()
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   // Poll for new messages every 30 seconds
   useEffect(() => {
+    if (authLoading) {
+      return
+    }
+
     if (token) {
       fetchMessages()
       
@@ -37,17 +41,14 @@ export default function MessagesPage() {
     } else {
       setIsLoading(false)
     }
-  }, [token])
+  }, [authLoading, token])
 
   async function fetchMessages() {
     setIsLoading(true)
     setError(null)
     try {
-      const apiUrl = PUBLISHERS_API_URL
-      console.log('Fetching messages with token:', token)
-      const res = await fetch(`${apiUrl}/api/messages`, { 
-        headers: { 
-          'Authorization': `Bearer ${token}`,
+      const res = await publisherAuthFetch('/api/messages', {
+        headers: {
           'Content-Type': 'application/json'
         }
       })
@@ -69,12 +70,9 @@ export default function MessagesPage() {
 
   async function markRead(id: string) {
     try {
-      const apiUrl = PUBLISHERS_API_URL
-      console.log('Marking message as read:', id)
-      const res = await fetch(`${apiUrl}/api/messages/${id}/read`, {
+      const res = await publisherAuthFetch(`/api/messages/${id}/read`, {
         method: 'PATCH',
         headers: { 
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       })
