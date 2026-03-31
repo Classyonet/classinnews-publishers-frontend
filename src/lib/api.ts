@@ -33,7 +33,11 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
 }
 
 export function setAuthHeader(token?: string) {
-  return token && token !== PUBLISHER_SESSION_PLACEHOLDER ? { Authorization: `Bearer ${token}` } : {}
+  const headers: Record<string, string> = {}
+  if (token && token !== PUBLISHER_SESSION_PLACEHOLDER) {
+    headers.Authorization = `Bearer ${token}`
+  }
+  return headers
 }
 
 // Legacy compatibility helpers during the cookie-session migration.
@@ -47,6 +51,46 @@ export function getToken(): string | null {
 
 export function removeToken() {
   clearStoredPublisherSession()
+}
+
+async function publisherApiRequest(path: string, options: RequestInit = {}) {
+  const token = getToken()
+  const hasFormDataBody =
+    typeof FormData !== 'undefined' && options.body instanceof FormData
+
+  const headers: Record<string, string> = {
+    ...(!hasFormDataBody ? { 'Content-Type': 'application/json' } : {}),
+    ...setAuthHeader(token || undefined),
+    ...((options.headers || {}) as Record<string, string>),
+  }
+
+  const response = await fetch(`${API_URL}${path}`, {
+    ...options,
+    credentials: 'include',
+    headers,
+  })
+
+  const contentType = response.headers.get('content-type') || ''
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      clearStoredPublisherSession()
+    }
+
+    if (contentType.includes('application/json')) {
+      const error = await response.json()
+      throw new Error(error.message || 'Request failed')
+    }
+
+    const text = await response.text()
+    throw new Error(text || `Request failed: ${response.status}`)
+  }
+
+  if (contentType.includes('application/json')) {
+    return response.json()
+  }
+
+  return response.text()
 }
 
 // Auth API
@@ -108,93 +152,35 @@ export const authAPI = {
 // Articles API
 export const articlesAPI = {
   async getAll() {
-    const token = getToken()
-    const response = await fetch(`${API_URL}/api/articles`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Failed to fetch articles')
-    }
-
-    const data = await response.json()
+    const data = await publisherApiRequest('/api/articles')
     return data.data || data
   },
 
   async getOne(id: string) {
-    const token = getToken()
-    const response = await fetch(`${API_URL}/api/articles/${id}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Failed to fetch article')
-    }
-
-    const data = await response.json()
+    const data = await publisherApiRequest(`/api/articles/${id}`)
     return data.data || data
   },
 
   async create(articleData: any) {
-    const token = getToken()
-    const response = await fetch(`${API_URL}/api/articles`, {
+    const data = await publisherApiRequest('/api/articles', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
       body: JSON.stringify(articleData),
     })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Failed to create article')
-    }
-
-    const data = await response.json()
     return data.data || data
   },
 
   async update(id: string, articleData: any) {
-    const token = getToken()
-    const response = await fetch(`${API_URL}/api/articles/${id}`, {
+    const data = await publisherApiRequest(`/api/articles/${id}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
       body: JSON.stringify(articleData),
     })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Failed to update article')
-    }
-
-    const data = await response.json()
     return data.data || data
   },
 
   async delete(id: string) {
-    const token = getToken()
-    const response = await fetch(`${API_URL}/api/articles/${id}`, {
+    await publisherApiRequest(`/api/articles/${id}`, {
       method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
     })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Failed to delete article')
-    }
-
     return true
   },
 }
@@ -202,19 +188,7 @@ export const articlesAPI = {
 // Dashboard API
 export const dashboardAPI = {
   async getStats() {
-    const token = getToken()
-    const response = await fetch(`${API_URL}/api/dashboard/stats`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Failed to fetch dashboard stats')
-    }
-
-    const data = await response.json()
+    const data = await publisherApiRequest('/api/dashboard/stats')
     return data
   },
 }
@@ -222,14 +196,9 @@ export const dashboardAPI = {
 // Categories API
 export const categoriesAPI = {
   async getAll() {
-    const response = await fetch(`${API_URL}/api/categories`)
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Failed to fetch categories')
-    }
-
-    const data = await response.json()
+    const data = await publisherApiRequest('/api/categories', {
+      credentials: 'include',
+    })
     return data.data || data
   },
 }
@@ -237,24 +206,11 @@ export const categoriesAPI = {
 // Media API
 export const mediaAPI = {
   async getAll() {
-    const token = getToken()
-    const response = await fetch(`${API_URL}/api/media`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Failed to fetch media')
-    }
-
-    const data = await response.json()
+    const data = await publisherApiRequest('/api/media')
     return data.data || data
   },
 
   async upload(file: File, metadata?: any) {
-    const token = getToken()
     const formData = new FormData()
     formData.append('file', file)
     if (metadata) {
@@ -263,57 +219,25 @@ export const mediaAPI = {
       })
     }
 
-    const response = await fetch(`${API_URL}/api/media/upload`, {
+    const data = await publisherApiRequest('/api/media/upload', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
       body: formData,
     })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Failed to upload media')
-    }
-
-    const data = await response.json()
     return data.data || data
   },
 
   async delete(id: string) {
-    const token = getToken()
-    const response = await fetch(`${API_URL}/api/media/${id}`, {
+    await publisherApiRequest(`/api/media/${id}`, {
       method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
     })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Failed to delete media')
-    }
-
     return true
   },
 
   async update(id: string, metadata: any) {
-    const token = getToken()
-    const response = await fetch(`${API_URL}/api/media/${id}`, {
+    const data = await publisherApiRequest(`/api/media/${id}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
       body: JSON.stringify(metadata),
     })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Failed to update media')
-    }
-
-    const data = await response.json()
     return data.data || data
   },
 }
