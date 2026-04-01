@@ -212,6 +212,18 @@
 
 
 
+/* Ensure inputs, textareas and the Quill editor use the theme foreground and caret color */
+input,
+textarea,
+.ql-editor,
+.ql-editor * {
+  color: hsl(var(--foreground)) !important;
+  caret-color: hsl(var(--foreground)) !important;
+}
+
+
+
+
 
 
 
