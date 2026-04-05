@@ -5,4 +5,5 @@ compatibility_flags = ["nodejs_compat"]
 
 # Environment variables (set in Cloudflare Dashboard)
 # [vars]
-# NEXT_PUBLIC_API_URL = "https://classinnews-publishers-backend.onrender.com"
+# NEXT_PUBLIC_API_URL = "https://publisher-api.classinnews.com"
+# NEXT_PUBLIC_ADMIN_API_URL = "https://admin-api.classinnews.com"
