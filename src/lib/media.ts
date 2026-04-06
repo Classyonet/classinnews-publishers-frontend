@@ -1,5 +1,12 @@
 import { PUBLISHERS_API_URL } from './api-config'
 
+const LEGACY_UPLOAD_HOSTS = new Set([
+  'publishers-api.147.93.53.76.sslip.io',
+  'publisher-api.147.93.53.76.sslip.io',
+  'publishers-api.classinnews.com',
+  'publisher-api.classinnews.com',
+])
+
 /**
  * Helper function to get the full URL for uploaded media files
  * @param fileUrl - The file URL from the database (e.g., "/uploads/file-123.jpg")
@@ -10,8 +17,20 @@ export function getMediaUrl(fileUrl: string | null | undefined): string {
   
   const API_URL = PUBLISHERS_API_URL
   
-  // If the URL already includes http, return as is (e.g., R2 URLs)
   if (fileUrl.startsWith('http')) {
+    try {
+      const parsedUrl = new URL(fileUrl)
+
+      if (
+        parsedUrl.pathname.startsWith('/uploads/') &&
+        LEGACY_UPLOAD_HOSTS.has(parsedUrl.hostname.toLowerCase())
+      ) {
+        return `${API_URL}${parsedUrl.pathname}`
+      }
+    } catch {
+      return fileUrl
+    }
+
     return fileUrl
   }
   
