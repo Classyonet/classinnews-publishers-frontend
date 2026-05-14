@@ -19,6 +19,7 @@ export default function EditArticlePage() {
     title: '',
     content: '',
     excerpt: '',
+    source: '',
     categoryId: '',
     tags: [] as string[],
     featuredImageUrl: '',
@@ -53,6 +54,7 @@ export default function EditArticlePage() {
           title: articleData.title || '',
           content: articleData.content || '',
           excerpt: articleData.excerpt || '',
+          source: articleData.source || articleData.seoMetadata?.source || '',
           categoryId: articleData.categoryId || '',
           tags: articleData.tags || [],
           featuredImageUrl: articleData.featuredImageUrl || '',
@@ -128,7 +130,8 @@ export default function EditArticlePage() {
         ...article,
         status,
         categoryId: article.categoryId || null,
-        featuredImageUrl: article.featuredImageUrl || null
+        featuredImageUrl: article.featuredImageUrl || null,
+        source: article.source.trim()
       }
       
       await articlesAPI.update(articleId, payload)
@@ -268,6 +271,22 @@ export default function EditArticlePage() {
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Source
+                </label>
+                <input
+                  type="text"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                  placeholder="Example: Reuters, BBC, Classy News"
+                  value={article.source}
+                  onChange={(e) => setArticle({...article, source: e.target.value})}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Optional. If provided, this appears under the publisher name in the app.
+                </p>
               </div>
 
               <div>
@@ -538,9 +557,9 @@ export default function EditArticlePage() {
                     month: 'long', 
                     day: 'numeric' 
                   })}</span>
-                  {article.categoryId && categories.length > 0 && (
+                  {(article.source || (article.categoryId && categories.length > 0)) && (
                     <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">
-                      {categories.find(c => c.id === article.categoryId)?.name || 'Category'}
+                      {article.source || categories.find(c => c.id === article.categoryId)?.name || 'Category'}
                     </span>
                   )}
                 </div>

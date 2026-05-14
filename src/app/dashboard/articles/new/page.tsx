@@ -17,6 +17,7 @@ function NewArticlePageContent() {
     title: '',
     content: '',
     excerpt: '',
+    source: '',
     categoryId: '',
     tags: [] as string[],
     featuredImageUrl: '',
@@ -174,7 +175,8 @@ function NewArticlePageContent() {
         featuredImageUrl: article.featuredImageUrl || null,
         title: article.title.trim(),
         content: article.content.trim(),
-        excerpt: article.excerpt.trim()
+        excerpt: article.excerpt.trim(),
+        source: article.source.trim()
       }
       
       await articlesAPI.create(payload)
@@ -383,6 +385,22 @@ function NewArticlePageContent() {
                     Required for review submission
                   </p>
                 )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-800 mb-2">
+                  Source
+                </label>
+                <input
+                  type="text"
+                  className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all shadow-sm placeholder:text-slate-400"
+                  placeholder="Example: Reuters, BBC, Classy News"
+                  value={article.source}
+                  onChange={(e) => setArticle({...article, source: e.target.value})}
+                />
+                <p className="text-xs text-slate-500 mt-2">
+                  Optional. If provided, this appears under the publisher name in the app.
+                </p>
               </div>
 
               <div>
@@ -714,9 +732,9 @@ function NewArticlePageContent() {
                     month: 'long', 
                     day: 'numeric' 
                   })}</span>
-                  {article.categoryId && categories.length > 0 && (
+                  {(article.source || (article.categoryId && categories.length > 0)) && (
                     <span className="px-3 py-1 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 rounded-full font-medium">
-                      {categories.find(c => c.id === article.categoryId)?.name || 'Category'}
+                      {article.source || categories.find(c => c.id === article.categoryId)?.name || 'Category'}
                     </span>
                   )}
                 </div>
@@ -759,8 +777,6 @@ export default function NewArticlePage() {
     </Suspense>
   )
 }
-
-
 
 
 
