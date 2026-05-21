@@ -9,8 +9,8 @@ import { BrandingHead } from '@/components/BrandingHead'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'ClassinNews - Publishers',
-  description: 'Create and manage your news content with ClassinNews',
+  title: 'Classy News - Publishers',
+  description: 'Publisher dashboard for Classy News Platform',
 }
 
 export default function RootLayout({

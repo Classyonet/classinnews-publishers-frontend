@@ -49,7 +49,7 @@ export function Sidebar() {
               <BookOpen className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">ClassinNews</h1>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">Classy News</h1>
               <p className="text-xs text-slate-400">Creator Dashboard</p>
             </div>
           </div>

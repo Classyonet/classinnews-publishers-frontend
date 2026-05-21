@@ -160,10 +160,10 @@ function LoginContent() {
 
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
-                <input id="email" type="email" autoComplete="email" required
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">Email or username</label>
+                <input id="email" type="text" autoComplete="username" required
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition bg-gray-50 placeholder-gray-400"
-                  placeholder="you@example.com" value={formData.email}
+                  placeholder="you@example.com or publishername" value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})} />
               </div>
               <div>
@@ -204,7 +204,6 @@ export default function LoginPage() {
     </Suspense>
   )
 }
-
 
 
 
