@@ -28,7 +28,7 @@ export function BrandingHead() {
           }
           
           if (branding?.siteName) {
-            document.title = `${branding.siteName} - Publishers`
+            document.title = branding.siteName
           }
         }
       } catch (error) {
