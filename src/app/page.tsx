@@ -48,10 +48,13 @@ export default function HomePage() {
       <div className="relative z-10 container mx-auto px-4 py-16">
         <div className="text-center mb-12">
           <h1 className="text-5xl md:text-6xl font-bold text-white mb-4 drop-shadow-lg">
-            Welcome to ClassinNews
+            Classy News
           </h1>
-          <p className="text-xl md:text-2xl text-white/90 mb-8 drop-shadow">
-            Create, manage, and publish your news content with ease
+          <p className="text-xl md:text-2xl text-white/90 mb-4 drop-shadow">
+            The Publisher Dashboard for Classy News
+          </p>
+          <p className="text-base md:text-lg text-white/75 max-w-3xl mx-auto drop-shadow">
+            Classy News is a news application and website for reading the latest breaking news, politics, entertainment, sports, and lifestyle stories, and watching live TV and radio — all in one place. This dashboard allows publishers to create, manage, and publish news articles on the Classy News platform.
           </p>
         </div>
 

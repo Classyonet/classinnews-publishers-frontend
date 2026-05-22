@@ -92,8 +92,8 @@ function LoginContent() {
           <div className="absolute bottom-20 right-10 w-96 h-96 bg-white rounded-full blur-3xl" />
         </div>
         <div className="relative z-10 flex flex-col justify-center px-16 text-white">
-          <h1 className="text-5xl font-extrabold mb-4 leading-tight">ClassinNews</h1>
-          <p className="text-xl text-purple-100 mb-8 leading-relaxed">Publish, grow, and monetize your content with our creator platform.</p>
+          <h1 className="text-5xl font-extrabold mb-4 leading-tight">Classy News</h1>
+          <p className="text-xl text-purple-100 mb-8 leading-relaxed">Classy News is a news application and website for reading the latest breaking news, politics, entertainment, sports, and lifestyle stories. This publisher dashboard allows you to create, manage, and publish news articles on the Classy News platform.</p>
           <div className="space-y-4">
             {["Publish articles instantly", "Track your analytics", "Grow your audience"].map((item) => (
               <div key={item} className="flex items-center gap-3">
