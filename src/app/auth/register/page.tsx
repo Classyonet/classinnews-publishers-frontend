@@ -13,6 +13,12 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
   const [googleEnabled, setGoogleEnabled] = useState(false)
+  const [viewedTerms, setViewedTerms] = useState(false)
+  const [viewedPrivacy, setViewedPrivacy] = useState(false)
+  const [acceptedLegal, setAcceptedLegal] = useState(false)
+
+  const legalReady = viewedTerms && viewedPrivacy && acceptedLegal
+  const canCreateAccount = legalReady && !isLoading
 
   useEffect(() => {
     fetch(`${API_URL}/api/auth/oauth-providers`)
@@ -22,6 +28,11 @@ export default function RegisterPage() {
   }, [])
 
   const handleGoogleRegister = () => {
+    if (!legalReady) {
+      setError('Please view the Terms and Privacy Policy, then tick acceptance.')
+      return
+    }
+
     window.location.href = `${API_URL}/api/auth/google`
   }
 
@@ -29,6 +40,12 @@ export default function RegisterPage() {
     e.preventDefault()
     setIsLoading(true)
     setError('')
+
+    if (!legalReady) {
+      setError('Please view the Terms and Privacy Policy, then tick acceptance.')
+      setIsLoading(false)
+      return
+    }
 
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match')
@@ -107,7 +124,7 @@ export default function RegisterPage() {
                 </div>
 
                 {/* Google Sign Up */}
-                <button type="button" onClick={handleGoogleRegister} disabled={!googleEnabled}
+                <button type="button" onClick={handleGoogleRegister} disabled={!googleEnabled || !canCreateAccount}
                   className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all font-medium text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed mb-6">
                   <svg className="h-5 w-5" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -158,7 +175,53 @@ export default function RegisterPage() {
                       placeholder="Confirm your password" value={formData.confirmPassword}
                       onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})} />
                   </div>
-                  <button type="submit" disabled={isLoading}
+
+                  <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                    <p className="text-sm font-semibold text-gray-900">Before creating your publisher account</p>
+                    <p className="mt-1 text-xs leading-5 text-gray-500">
+                      Open both notes, then tick the acceptance box to continue.
+                    </p>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      <Link
+                        href="https://classinnews.com/terms"
+                        target="_blank"
+                        onClick={() => setViewedTerms(true)}
+                        className={`rounded-xl border px-3 py-2 text-center text-sm font-semibold transition ${
+                          viewedTerms
+                            ? 'border-green-200 bg-green-50 text-green-700'
+                            : 'border-gray-200 bg-white text-teal-700 hover:border-teal-300'
+                        }`}
+                      >
+                        {viewedTerms ? 'Terms viewed' : 'View Terms'}
+                      </Link>
+                      <Link
+                        href="https://classinnews.com/privacy-policy"
+                        target="_blank"
+                        onClick={() => setViewedPrivacy(true)}
+                        className={`rounded-xl border px-3 py-2 text-center text-sm font-semibold transition ${
+                          viewedPrivacy
+                            ? 'border-green-200 bg-green-50 text-green-700'
+                            : 'border-gray-200 bg-white text-teal-700 hover:border-teal-300'
+                        }`}
+                      >
+                        {viewedPrivacy ? 'Privacy viewed' : 'View Privacy'}
+                      </Link>
+                    </div>
+                    <label className="mt-3 flex items-start gap-3 text-sm text-gray-600">
+                      <input
+                        type="checkbox"
+                        checked={acceptedLegal}
+                        disabled={!viewedTerms || !viewedPrivacy || isLoading}
+                        onChange={(e) => setAcceptedLegal(e.target.checked)}
+                        className="mt-1 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500 disabled:opacity-40"
+                      />
+                      <span>
+                        I have read and accept the Terms and Conditions and Privacy Policy.
+                      </span>
+                    </label>
+                  </div>
+
+                  <button type="submit" disabled={!canCreateAccount}
                     className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 px-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md">
                     {isLoading ? 'Creating Account...' : 'Create Account'}
                   </button>
