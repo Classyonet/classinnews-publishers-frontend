@@ -4,14 +4,21 @@ export const runtime = 'edge'
 
 
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { fetchFrontendTextSettings, frontendTextDefaults } from '@/lib/frontend-text-settings'
 
 export default function HomePage() {
   const { user, isLoading } = useAuth()
   const router = useRouter()
+  const [text, setText] = useState(frontendTextDefaults)
+
+  useEffect(() => {
+    fetchFrontendTextSettings().then(setText)
+  }, [])
 
   // If user is authenticated, redirect to dashboard
   if (!isLoading && user) {
@@ -48,13 +55,13 @@ export default function HomePage() {
       <div className="relative z-10 container mx-auto px-4 py-16">
         <div className="text-center mb-12">
           <h1 className="text-5xl md:text-6xl font-bold text-white mb-4 drop-shadow-lg">
-            Classy News
+            {text.frontend_publisher_home_title}
           </h1>
           <p className="text-xl md:text-2xl text-white/90 mb-4 drop-shadow">
-            The Publisher Dashboard for Classy News
+            {text.frontend_publisher_home_subtitle}
           </p>
           <p className="text-base md:text-lg text-white/75 max-w-3xl mx-auto drop-shadow">
-            Classy News is a news application and website for reading the latest breaking news, politics, entertainment, sports, and lifestyle stories, and watching live TV and radio — all in one place. This dashboard allows publishers to create, manage, and publish news articles on the Classy News platform.
+            {text.frontend_publisher_home_description}
           </p>
         </div>
 
@@ -119,7 +126,7 @@ export default function HomePage() {
 
         <div className="text-center mt-16">
           <p className="text-white text-lg mb-6 drop-shadow">
-            Ready to get started? Sign in to your account
+            {text.frontend_publisher_home_cta_note}
           </p>
           <div className="flex gap-4 justify-center">
             <Link href="/auth/login">
@@ -138,8 +145,6 @@ export default function HomePage() {
     </div>
   )
 }
-
-
 
 
 

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { PUBLISHERS_API_URL as API_URL } from '@/lib/api-config'
+import { fetchFrontendTextSettings, frontendTextDefaults, settingLines } from '@/lib/frontend-text-settings'
 
 export default function RegisterPage() {
   const { register } = useAuth()
@@ -16,6 +17,7 @@ export default function RegisterPage() {
   const [viewedTerms, setViewedTerms] = useState(false)
   const [viewedPrivacy, setViewedPrivacy] = useState(false)
   const [acceptedLegal, setAcceptedLegal] = useState(false)
+  const [text, setText] = useState(frontendTextDefaults)
 
   const legalReady = viewedTerms && viewedPrivacy && acceptedLegal
   const canCreateAccount = legalReady && !isLoading
@@ -25,6 +27,8 @@ export default function RegisterPage() {
       .then(res => res.json())
       .then(data => { if (data.providers?.google) setGoogleEnabled(true) })
       .catch(() => {})
+
+    fetchFrontendTextSettings().then(setText)
   }, [])
 
   const handleGoogleRegister = () => {
@@ -78,10 +82,10 @@ export default function RegisterPage() {
           <div className="absolute bottom-20 right-10 w-96 h-96 bg-white rounded-full blur-3xl" />
         </div>
         <div className="relative z-10 flex flex-col justify-center px-16 text-white">
-          <h1 className="text-5xl font-extrabold mb-4 leading-tight">ClassinNews</h1>
-          <p className="text-xl text-teal-100 mb-8 leading-relaxed">Start your journey as a content creator and reach millions of readers.</p>
+          <h1 className="text-5xl font-extrabold mb-4 leading-tight">{text.frontend_publisher_register_title}</h1>
+          <p className="text-xl text-teal-100 mb-8 leading-relaxed">{text.frontend_publisher_register_description}</p>
           <div className="space-y-4">
-            {["Publish articles instantly", "Earn from your content", "Build your brand"].map((item) => (
+            {settingLines(text.frontend_publisher_register_features, frontendTextDefaults.frontend_publisher_register_features).map((item) => (
               <div key={item} className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
@@ -119,8 +123,8 @@ export default function RegisterPage() {
             ) : (
               <>
                 <div className="text-center mb-8">
-                  <h2 className="text-2xl font-bold text-gray-900">Create your account</h2>
-                  <p className="text-gray-500 mt-1">Join ClassinNews as a publisher</p>
+                  <h2 className="text-2xl font-bold text-gray-900">{text.frontend_publisher_register_form_title}</h2>
+                  <p className="text-gray-500 mt-1">{text.frontend_publisher_register_form_subtitle}</p>
                 </div>
 
                 {/* Google Sign Up */}
