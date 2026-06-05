@@ -274,6 +274,59 @@ export default function RevenuePage() {
     return { rate, commission, net }
   }
 
+  const getPaymentCountdown = (withdrawal: WithdrawalRequest) => {
+    const paymentWindowDays = 7
+    const requestTime = new Date(withdrawal.requestDate).getTime()
+    const dueTime = requestTime + paymentWindowDays * 24 * 60 * 60 * 1000
+    const now = Date.now()
+    const elapsedDays = Math.max(0, (now - requestTime) / (24 * 60 * 60 * 1000))
+    const remainingDays = Math.max(0, Math.ceil((dueTime - now) / (24 * 60 * 60 * 1000)))
+    const progress = Math.min(100, Math.max(0, (elapsedDays / paymentWindowDays) * 100))
+
+    if (withdrawal.status === 'completed') {
+      return { label: 'Completed', remainingDays: 0, progress: 100, tone: 'emerald' }
+    }
+    if (withdrawal.status === 'paid') {
+      return { label: 'Payment sent', remainingDays: 0, progress: 100, tone: 'cyan' }
+    }
+    if (withdrawal.status === 'rejected') {
+      return { label: 'Rejected', remainingDays: 0, progress: 0, tone: 'rose' }
+    }
+    if (remainingDays === 0) {
+      return { label: 'Due now', remainingDays: 0, progress: 100, tone: 'amber' }
+    }
+
+    return {
+      label: `${remainingDays} day${remainingDays === 1 ? '' : 's'} left`,
+      remainingDays,
+      progress,
+      tone: 'purple'
+    }
+  }
+
+  const CountdownTracker = ({ withdrawal }: { withdrawal: WithdrawalRequest }) => {
+    const countdown = getPaymentCountdown(withdrawal)
+    const barClass = {
+      purple: 'bg-purple-500',
+      amber: 'bg-amber-500',
+      cyan: 'bg-cyan-500',
+      emerald: 'bg-emerald-500',
+      rose: 'bg-rose-500',
+    }[countdown.tone]
+
+    return (
+      <div className="min-w-[150px]">
+        <div className="mb-1 flex items-center justify-between gap-2 text-xs">
+          <span className="font-semibold text-slate-700">{countdown.label}</span>
+          <span className="text-slate-400">5-7 days</span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+          <div className={`h-full rounded-full ${barClass}`} style={{ width: `${countdown.progress}%` }} />
+        </div>
+      </div>
+    )
+  }
+
   const handleSavePaymentDetails = async () => {
     const errors = validatePaymentDetails()
     if (errors.length > 0) {
@@ -811,6 +864,7 @@ export default function RevenuePage() {
                   <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Amount</th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Final Receivable</th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Status</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Payment Countdown</th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Reference</th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Notes</th>
                 </tr>
@@ -829,6 +883,9 @@ export default function RevenuePage() {
                     </td>
                     <td className="py-3 px-4">
                       {getStatusBadge(withdrawal.status)}
+                    </td>
+                    <td className="py-3 px-4">
+                      <CountdownTracker withdrawal={withdrawal} />
                     </td>
                     <td className="py-3 px-4 text-sm text-slate-600">
                       {withdrawal.transactionReference || '-'}

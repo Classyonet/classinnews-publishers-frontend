@@ -8,9 +8,19 @@ import { useAuth } from '@/contexts/auth-context'
 import { StarBadgeCompact } from '@/components/star-badge'
 import { publisherAuthFetch } from '@/lib/publisher-session'
 
+interface HeaderMessage {
+  id: string
+  subject?: string
+  body: string
+  isRead: boolean
+  createdAt: string
+}
+
 export function Header() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
+  const [messages, setMessages] = useState<HeaderMessage[]>([])
   const [stars, setStars] = useState<number>(0)
   const [ratingError, setRatingError] = useState<string | null>(null)
   const { user, logout, token, isLoading } = useAuth()
@@ -52,6 +62,40 @@ export function Header() {
 
     fetchRating()
   }, [isLoading, token])
+
+  useEffect(() => {
+    if (isLoading || !token) return
+
+    const fetchMessages = async () => {
+      try {
+        const response = await publisherAuthFetch('/api/messages')
+        if (!response.ok) return
+        const result = await response.json()
+        setMessages(Array.isArray(result.data) ? result.data : [])
+      } catch (error) {
+        console.error('Error fetching messages:', error)
+      }
+    }
+
+    fetchMessages()
+    const interval = setInterval(fetchMessages, 30000)
+    return () => clearInterval(interval)
+  }, [isLoading, token])
+
+  const unreadMessages = messages.filter((message) => !message.isRead)
+  const latestUnreadMessages = unreadMessages.slice(0, 5)
+
+  const markMessageRead = async (id: string) => {
+    try {
+      await publisherAuthFetch(`/api/messages/${id}/read`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      setMessages((current) => current.map((message) => message.id === id ? { ...message, isRead: true } : message))
+    } catch (error) {
+      console.error('Error marking message read:', error)
+    }
+  }
 
   const handleLogout = () => {
     void logout()
@@ -105,14 +149,56 @@ export function Header() {
 
         <div className="flex items-center gap-x-4 lg:gap-x-6">
           {/* Notifications */}
-          <button
-            type="button"
-            className="relative -m-2.5 p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
-          >
-            <span className="sr-only">View notifications</span>
-            <Bell className="h-6 w-6" aria-hidden="true" />
-            <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-gradient-to-r from-red-500 to-pink-500 ring-2 ring-white shadow-lg"></span>
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsNotificationsOpen((value) => !value)}
+              className="relative -m-2.5 p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
+            >
+              <span className="sr-only">View notifications</span>
+              <Bell className="h-6 w-6" aria-hidden="true" />
+              {unreadMessages.length > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[20px] rounded-full bg-gradient-to-r from-red-500 to-pink-500 px-1.5 py-0.5 text-center text-[10px] font-bold text-white ring-2 ring-white shadow-lg">
+                  {unreadMessages.length}
+                </span>
+              )}
+            </button>
+
+            {isNotificationsOpen && (
+              <div className="absolute right-0 z-20 mt-3 w-80 overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl ring-1 ring-slate-900/5">
+                <div className="border-b border-slate-100 bg-gradient-to-r from-purple-50 to-pink-50 px-4 py-3">
+                  <p className="text-sm font-bold text-slate-900">Notifications</p>
+                  <p className="text-xs text-slate-500">{unreadMessages.length} unread message{unreadMessages.length === 1 ? '' : 's'}</p>
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                  {latestUnreadMessages.length === 0 ? (
+                    <div className="px-4 py-6 text-center text-sm text-slate-500">No new notifications.</div>
+                  ) : latestUnreadMessages.map((message) => (
+                    <button
+                      key={message.id}
+                      type="button"
+                      onClick={() => markMessageRead(message.id)}
+                      className="block w-full border-b border-slate-100 px-4 py-3 text-left hover:bg-slate-50"
+                    >
+                      <p className="text-sm font-semibold text-slate-900">{message.subject || 'New message'}</p>
+                      <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-600">{message.body}</p>
+                      <p className="mt-2 text-[11px] text-slate-400">{new Date(message.createdAt).toLocaleString()}</p>
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsNotificationsOpen(false)
+                    router.push('/dashboard/messages')
+                  }}
+                  className="block w-full bg-slate-50 px-4 py-3 text-center text-sm font-semibold text-purple-600 hover:bg-purple-50"
+                >
+                  Open Messages
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* Separator */}
           <div className="hidden lg:block lg:h-6 lg:w-px lg:bg-slate-200" aria-hidden="true" />
@@ -183,7 +269,6 @@ export function Header() {
     </div>
   )
 }
-
 
 
 
