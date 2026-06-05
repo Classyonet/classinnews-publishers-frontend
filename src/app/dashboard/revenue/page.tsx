@@ -40,6 +40,7 @@ interface WithdrawalRequest {
   requestDate: string
   processedDate?: string
   adminNotes?: string
+  transactionReference?: string
   commissionRate?: number
   commissionAmount?: number
   netAmount?: number
@@ -53,6 +54,7 @@ interface CommissionInfo {
   totalEarnings?: number
   withdrawnAmount?: number
   availableBalance?: number
+  minimumWithdrawalAmount?: number
   tierRates?: Array<{
     key: string
     tier: string
@@ -105,7 +107,9 @@ export default function RevenuePage() {
   
   const [withdrawAmount, setWithdrawAmount] = useState('')
   const [validationErrors, setValidationErrors] = useState<string[]>([])
-  const minWithdrawalAmount = 50
+  const minWithdrawalAmount = commissionInfo?.minimumWithdrawalAmount ?? 50
+  const activeWithdrawalStatuses = ['pending', 'under_review', 'approved', 'paid']
+  const activeWithdrawal = withdrawals.find((withdrawal) => activeWithdrawalStatuses.includes(withdrawal.status))
   const defaultTierRates = [
     { key: 'commission_new_tier', tier: 'New', stars: 0, rate: 30 },
     { key: 'commission_starter_tier', tier: 'Starter', stars: 1, rate: 25 },
@@ -318,6 +322,10 @@ export default function RevenuePage() {
       errors.push('Payment details not found')
       return errors
     }
+
+    if (activeWithdrawal) {
+      errors.push(`You already have an active withdrawal request (${activeWithdrawal.status.replace('_', ' ')}).`)
+    }
     
     if (!paymentDetails.isComplete) {
       if (!paymentDetails.registeredName) errors.push('Registered Name is missing')
@@ -382,14 +390,18 @@ export default function RevenuePage() {
   const getStatusBadge = (status: string) => {
     const styles = {
       pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      under_review: 'bg-indigo-100 text-indigo-800 border-indigo-200',
       approved: 'bg-blue-100 text-blue-800 border-blue-200',
+      paid: 'bg-cyan-100 text-cyan-800 border-cyan-200',
       completed: 'bg-green-100 text-green-800 border-green-200',
       rejected: 'bg-red-100 text-red-800 border-red-200'
     }
     
     const icons = {
       pending: Clock,
+      under_review: Eye,
       approved: CheckCircle,
+      paid: CreditCard,
       completed: CheckCheck,
       rejected: XCircle
     }
@@ -399,7 +411,7 @@ export default function RevenuePage() {
     return (
       <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold border ${styles[status as keyof typeof styles] || styles.pending}`}>
         <Icon className="h-3 w-3" />
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+        {status.replace('_', ' ').replace(/\b\w/g, (char) => char.toUpperCase())}
       </span>
     )
   }
@@ -638,10 +650,10 @@ export default function RevenuePage() {
                 GHC {availableBalance.toFixed(2)}
               </p>
               <p className="text-xs text-slate-600">Total generated: GHC {totalEarningsAmount.toFixed(2)}</p>
-              <p className="text-xs text-slate-600 mb-4">Reserved (requested/paid): GHC {reservedWithdrawalAmount.toFixed(2)}</p>
+              <p className="text-xs text-slate-600 mb-4">Reserved (non-rejected withdrawals): GHC {reservedWithdrawalAmount.toFixed(2)}</p>
               <button 
                 onClick={() => setShowWithdrawModal(true)}
-                disabled={!paymentDetails?.isComplete || availableBalance <= 0}
+                disabled={!paymentDetails?.isComplete || availableBalance <= 0 || !!activeWithdrawal}
                 className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold shadow-lg shadow-purple-500/40 hover:shadow-xl hover:shadow-purple-500/50 hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
                 Withdraw Cash
@@ -657,6 +669,11 @@ export default function RevenuePage() {
                   No withdrawable balance yet
                 </p>
               )}
+              {paymentDetails?.isComplete && activeWithdrawal && (
+                <p className="text-xs text-indigo-600 mt-3 font-medium">
+                  Active request already exists: {activeWithdrawal.status.replace('_', ' ')}
+                </p>
+              )}
             </div>
             
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
@@ -666,8 +683,9 @@ export default function RevenuePage() {
                   <p className="font-semibold text-blue-900 mb-1">Withdrawal Process</p>
                   <ol className="text-blue-700 space-y-1 list-decimal list-inside">
                     <li>Ensure payment details are complete</li>
+                    <li>Meet the minimum payout of GHC {minWithdrawalAmount.toFixed(2)}</li>
                     <li>Submit withdrawal request</li>
-                    <li>Admin reviews your request</li>
+                    <li>Admin reviews, approves, and pays your request</li>
                     <li>Receive payment within 5-7 days</li>
                   </ol>
                 </div>
@@ -791,7 +809,9 @@ export default function RevenuePage() {
                 <tr className="border-b border-slate-200">
                   <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Date</th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Amount</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Final Receivable</th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Status</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Reference</th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Notes</th>
                 </tr>
               </thead>
@@ -804,8 +824,14 @@ export default function RevenuePage() {
                     <td className="py-3 px-4 text-sm font-semibold text-slate-900">
                       GHC {(Number(withdrawal.amount) || 0).toFixed(2)}
                     </td>
+                    <td className="py-3 px-4 text-sm font-semibold text-emerald-700">
+                      GHC {(Number(withdrawal.netAmount ?? withdrawal.amount) || 0).toFixed(2)}
+                    </td>
                     <td className="py-3 px-4">
                       {getStatusBadge(withdrawal.status)}
+                    </td>
+                    <td className="py-3 px-4 text-sm text-slate-600">
+                      {withdrawal.transactionReference || '-'}
                     </td>
                     <td className="py-3 px-4 text-sm text-slate-600">
                       {withdrawal.adminNotes || '-'}
@@ -1027,12 +1053,16 @@ export default function RevenuePage() {
                       <span className="text-slate-600">Requested Amount:</span>
                       <span className="font-medium text-slate-900">GHC {parseFloat(withdrawAmount).toFixed(2)}</span>
                     </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Commission Rate:</span>
+                      <span className="font-medium text-slate-900">{commissionInfo?.rate ?? 30}%</span>
+                    </div>
                     <div className="flex justify-between text-red-600">
-                      <span>Commission ({commissionInfo?.rate ?? 30}%):</span>
+                      <span>Commission Fee:</span>
                       <span className="font-medium">- GHC {calculateCommission(parseFloat(withdrawAmount)).commission.toFixed(2)}</span>
                     </div>
                     <div className="pt-2 border-t border-indigo-200 flex justify-between text-lg">
-                      <span className="font-semibold text-slate-700">You'll Receive:</span>
+                      <span className="font-semibold text-slate-700">Final Amount Publisher Receives:</span>
                       <span className="font-bold text-emerald-600">GHC {calculateCommission(parseFloat(withdrawAmount)).net.toFixed(2)}</span>
                     </div>
                   </div>
@@ -1049,7 +1079,7 @@ export default function RevenuePage() {
 
               <button
                 onClick={handleWithdrawRequest}
-                disabled={processing || !paymentDetails?.isComplete}
+                disabled={processing || !paymentDetails?.isComplete || !!activeWithdrawal}
                 className="w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {processing ? (
