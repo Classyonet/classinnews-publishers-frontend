@@ -78,9 +78,9 @@ interface ArticleEarning {
 }
 
 interface EarningsData {
-  total: { total: number; articles: ArticleEarning[] }
-  currentWeek: { total: number; articles: ArticleEarning[] }
-  currentMonth: { total: number; articles: ArticleEarning[] }
+  total: { total: number; articleCount?: number; articles: ArticleEarning[] }
+  currentWeek: { total: number; articleCount?: number; articles: ArticleEarning[] }
+  currentMonth: { total: number; articleCount?: number; articles: ArticleEarning[] }
 }
 
 export default function RevenuePage() {
@@ -118,6 +118,7 @@ export default function RevenuePage() {
     { key: 'commission_platinum_tier', tier: 'Platinum', stars: 4, rate: 10 },
     { key: 'commission_gold_tier', tier: 'Gold', stars: 5, rate: 0 },
   ]
+  const formatArticleCount = (count: number) => `${count} article${count === 1 ? '' : 's'}`
 
   const stats = [
     {
@@ -127,7 +128,7 @@ export default function RevenuePage() {
       gradient: 'from-emerald-500 to-teal-500',
       shadowColor: 'shadow-emerald-500/30',
       bgGradient: 'from-emerald-50 to-teal-50',
-      change: earnings ? `${earnings.total.articles.length} articles` : '+0%'
+      change: earnings ? formatArticleCount(earnings.total.articleCount ?? earnings.total.articles.length) : '+0%'
     },
     {
       title: 'This Month',
@@ -145,7 +146,7 @@ export default function RevenuePage() {
       gradient: 'from-amber-500 to-yellow-500',
       shadowColor: 'shadow-amber-500/30',
       bgGradient: 'from-amber-50 to-yellow-50',
-      change: earnings ? `${earnings.currentWeek.articles.length} articles` : 'Processing'
+      change: earnings ? formatArticleCount(earnings.currentWeek.articleCount ?? earnings.currentWeek.articles.length) : 'Processing'
     }
   ]
 
@@ -764,19 +765,19 @@ export default function RevenuePage() {
               onClick={() => {}}
               className="px-4 py-2 text-sm font-semibold text-emerald-600 border-b-2 border-emerald-600"
             >
-              All Time ({earnings.total.articles.length})
+              All Time ({earnings.total.articleCount ?? earnings.total.articles.length})
             </button>
             <button
               onClick={() => {}}
               className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-emerald-600"
             >
-              This Month ({earnings.currentMonth.articles.length})
+              This Month ({earnings.currentMonth.articleCount ?? earnings.currentMonth.articles.length})
             </button>
             <button
               onClick={() => {}}
               className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-emerald-600"
             >
-              This Week ({earnings.currentWeek.articles.length})
+              This Week ({earnings.currentWeek.articleCount ?? earnings.currentWeek.articles.length})
             </button>
           </div>
 
@@ -841,7 +842,7 @@ export default function RevenuePage() {
               <TrendingUp className="h-12 w-12 text-slate-300 mx-auto mb-3" />
               <p className="text-slate-500 font-medium">No earning articles yet</p>
               <p className="text-sm text-slate-400 mt-1">
-                Articles with at least GHC 5.00 in earnings will appear here
+                Articles will appear here once they generate positive rounded earnings
               </p>
             </div>
           )}
