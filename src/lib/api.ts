@@ -196,7 +196,9 @@ export const dashboardAPI = {
 // Settings API
 export const settingsAPI = {
   async getPublicSettings(category: string) {
-    const data = await apiFetch(`/api/settings/public/${category}`)
+    const data = await apiFetch(`/api/settings/public/${category}?_t=${Date.now()}`, {
+      cache: 'no-store'
+    })
     return data.data || data
   },
 }
