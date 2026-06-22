@@ -32,6 +32,29 @@ function NewArticlePageContent() {
   const [mediaFiles, setMediaFiles] = useState<any[]>([])
   const [showPreview, setShowPreview] = useState(false)
 
+  // Restore draft from local storage
+  useEffect(() => {
+    try {
+      const draft = localStorage.getItem('cin_draft_article')
+      if (draft) {
+        const parsed = JSON.parse(draft)
+        // Check if there is actual content
+        if (parsed && (parsed.title || parsed.content)) {
+          setArticle(prev => ({ ...prev, ...parsed }))
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load draft from local storage', err)
+    }
+  }, [])
+
+  // Save draft to local storage whenever article changes
+  useEffect(() => {
+    if (article.title || article.content || article.excerpt) {
+      localStorage.setItem('cin_draft_article', JSON.stringify(article))
+    }
+  }, [article])
+
   useEffect(() => {
     // Fetch categories
     const fetchCategories = async () => {
@@ -180,6 +203,9 @@ function NewArticlePageContent() {
       }
       
       await articlesAPI.create(payload)
+      
+      // Clear draft on successful save
+      localStorage.removeItem('cin_draft_article')
       
       // Show success notification
       const message = status === 'draft' 
