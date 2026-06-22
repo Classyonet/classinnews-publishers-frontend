@@ -7,8 +7,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ArticleEditor } from '@/components/articles/article-editor'
 import { ArrowLeft, Save, Eye, Send, Upload, Image as ImageIcon, X } from 'lucide-react'
 import Link from 'next/link'
-import { articlesAPI, categoriesAPI, mediaAPI } from '@/lib/api'
+import { articlesAPI, categoriesAPI, mediaAPI, settingsAPI } from '@/lib/api'
 import { getMediaUrl } from '@/lib/media'
+
+const DEFAULT_TAGS = [
+  "Latest News",
+  "Breaking News",
+  "Afternoon News",
+  "Morning Brief",
+  "Sports Update",
+  "Entertainment"
+];
 
 export default function EditArticlePage() {
   const router = useRouter()
@@ -23,10 +32,12 @@ export default function EditArticlePage() {
     categoryId: '',
     tags: [] as string[],
     featuredImageUrl: '',
+    newsFlashTag: '',
     status: 'draft' as 'draft' | 'pending_review'
   })
 
   const [categories, setCategories] = useState<any[]>([])
+  const [newsFlashTags, setNewsFlashTags] = useState<string[]>(DEFAULT_TAGS)
   const [isSaving, setIsSaving] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
@@ -58,8 +69,16 @@ export default function EditArticlePage() {
           categoryId: articleData.categoryId || '',
           tags: articleData.tags || [],
           featuredImageUrl: articleData.featuredImageUrl || '',
+          newsFlashTag: articleData.seoMetadata?.newsFlashTag || '',
           status: articleData.status || 'draft'
         })
+        
+        // Fetch settings
+        const settings = await settingsAPI.getPublicSettings('article-page')
+        const tagsSetting = settings.find((s: any) => s.key === 'news_flash_tags')
+        if (tagsSetting && tagsSetting.value) {
+          setNewsFlashTags(JSON.parse(tagsSetting.value))
+        }
       } catch (err) {
         console.error('Failed to fetch data:', err)
         setError('Failed to load article')
@@ -131,7 +150,10 @@ export default function EditArticlePage() {
         status,
         categoryId: article.categoryId || null,
         featuredImageUrl: article.featuredImageUrl || null,
-        source: article.source.trim()
+        source: article.source.trim(),
+        seoMetadata: {
+          newsFlashTag: article.newsFlashTag
+        }
       }
       
       await articlesAPI.update(articleId, payload)
@@ -251,6 +273,25 @@ export default function EditArticlePage() {
 
         {/* Sidebar - Settings */}
         <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>News Flash Tag</CardTitle>
+              <CardDescription>Select a tag to appear before the title in push notifications</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <select
+                value={article.newsFlashTag}
+                onChange={(e) => setArticle({ ...article, newsFlashTag: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">None (Use Default)</option>
+                {newsFlashTags.map(tag => (
+                  <option key={tag} value={tag}>{tag}</option>
+                ))}
+              </select>
+            </CardContent>
+          </Card>
+          
           {/* Article Settings */}
           <Card>
             <CardHeader>

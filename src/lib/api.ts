@@ -193,6 +193,14 @@ export const dashboardAPI = {
   },
 }
 
+// Settings API
+export const settingsAPI = {
+  async getPublicSettings(category: string) {
+    const data = await apiFetch(`/api/settings/public/${category}`)
+    return data.data || data
+  },
+}
+
 // Categories API
 export const categoriesAPI = {
   async getAll() {

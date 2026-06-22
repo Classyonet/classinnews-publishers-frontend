@@ -7,8 +7,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ArticleEditor } from '@/components/articles/article-editor'
 import { ArrowLeft, Save, Eye, Send, Upload, Image as ImageIcon, X } from 'lucide-react'
 import Link from 'next/link'
-import { articlesAPI, categoriesAPI, mediaAPI } from '@/lib/api'
+import { articlesAPI, categoriesAPI, mediaAPI, settingsAPI } from '@/lib/api'
 import { getMediaUrl } from '@/lib/media'
+
+const DEFAULT_TAGS = [
+  "Latest News",
+  "Breaking News",
+  "Afternoon News",
+  "Morning Brief",
+  "Sports Update",
+  "Entertainment"
+];
 
 function NewArticlePageContent() {
   const router = useRouter()
@@ -21,10 +30,12 @@ function NewArticlePageContent() {
     categoryId: '',
     tags: [] as string[],
     featuredImageUrl: '',
+    newsFlashTag: '',
     status: 'draft' as 'draft' | 'pending_review'
   })
 
   const [categories, setCategories] = useState<any[]>([])
+  const [newsFlashTags, setNewsFlashTags] = useState<string[]>(DEFAULT_TAGS)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
   const [uploadingImage, setUploadingImage] = useState(false)
@@ -66,7 +77,21 @@ function NewArticlePageContent() {
         console.error('Failed to fetch categories:', err)
       }
     }
+
+    const fetchSettings = async () => {
+      try {
+        const settings = await settingsAPI.getPublicSettings('article-page')
+        const tagsSetting = settings.find((s: any) => s.key === 'news_flash_tags')
+        if (tagsSetting && tagsSetting.value) {
+          setNewsFlashTags(JSON.parse(tagsSetting.value))
+        }
+      } catch (err) {
+        console.error('Failed to fetch settings:', err)
+      }
+    }
+
     fetchCategories()
+    fetchSettings()
   }, [])
 
   // Separate useEffect for reading URL parameters
@@ -199,7 +224,10 @@ function NewArticlePageContent() {
         title: article.title.trim(),
         content: article.content.trim(),
         excerpt: article.excerpt.trim(),
-        source: article.source.trim()
+        source: article.source.trim(),
+        seoMetadata: {
+          newsFlashTag: article.newsFlashTag
+        }
       }
       
       await articlesAPI.create(payload)
@@ -372,6 +400,22 @@ function NewArticlePageContent() {
 
         {/* Sidebar */}
         <div className="space-y-6">
+          <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-100">
+            <h3 className="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wider">News Flash Tag</h3>
+            <select
+              value={article.newsFlashTag}
+              onChange={(e) => setArticle({ ...article, newsFlashTag: e.target.value })}
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-colors bg-slate-50 hover:bg-white"
+            >
+              <option value="">None (Use Default)</option>
+              {newsFlashTags.map(tag => (
+                <option key={tag} value={tag}>{tag}</option>
+              ))}
+            </select>
+            <p className="text-xs text-slate-500 mt-2">
+              Select a tag to appear before the article title in push notifications.
+            </p>
+          </div>
           {/* Article Settings */}
           <div className="rounded-2xl bg-gradient-to-br from-white to-purple-50/20 p-6 shadow-xl border-2 border-purple-100">
             <div className="flex items-center gap-2 mb-6">

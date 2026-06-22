@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { Sidebar } from '@/components/dashboard/sidebar'
 import { Header } from '@/components/dashboard/header'
+import { useVersionCheck } from '@/hooks/useVersionCheck'
 
 export default function DashboardLayout({
   children,
@@ -13,6 +14,7 @@ export default function DashboardLayout({
 }) {
   const { user, isLoading } = useAuth()
   const router = useRouter()
+  const { newVersionAvailable } = useVersionCheck()
 
   useEffect(() => {
     // Redirect to login if not authenticated
@@ -42,6 +44,12 @@ export default function DashboardLayout({
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-pink-50/30">
       <Sidebar />
       <div className="lg:pl-72">
+        {newVersionAvailable && (
+          <div className="bg-blue-600 text-white px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-2 z-50">
+            <span className="animate-pulse">⬆️</span> New version available! Refresh to get the latest features.
+            <button onClick={() => window.location.reload()} className="ml-4 underline font-bold hover:text-blue-200">Refresh Now</button>
+          </div>
+        )}
         <Header />
         <main className="py-8">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

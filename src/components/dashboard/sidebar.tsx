@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import pkg from '../../../package.json'
 import { 
   BarChart3, 
   FileText, 
@@ -103,6 +104,12 @@ export function Sidebar() {
                 </div>
                 <p className="text-xs text-slate-300 leading-relaxed">
                   Publish consistently to build your audience and increase engagement.
+                </p>
+              </div>
+              
+              <div className="mt-4 text-center">
+                <p className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">
+                  ClassyNews Creator v{pkg.version}
                 </p>
               </div>
             </li>
