@@ -34,7 +34,8 @@ export default function EditArticlePage() {
     tags: [] as string[],
     featuredImageUrl: '',
     newsFlashTag: '',
-    status: 'draft' as 'draft' | 'pending_review'
+    status: 'draft' as 'draft' | 'pending_review',
+    scheduledSubmitAt: ''
   })
 
   const [categories, setCategories] = useState<any[]>([])
