@@ -9,6 +9,7 @@ import { ArrowLeft, Save, Eye, Send, Upload, Image as ImageIcon, X } from 'lucid
 import Link from 'next/link'
 import { articlesAPI, categoriesAPI, mediaAPI, settingsAPI } from '@/lib/api'
 import { getMediaUrl } from '@/lib/media'
+import { ArticleSanitationModal } from '@/components/articles/article-sanitation-modal'
 
 const DEFAULT_TAGS = [
   "Latest News",
@@ -45,6 +46,7 @@ export default function EditArticlePage() {
   const [showMediaLibrary, setShowMediaLibrary] = useState(false)
   const [mediaFiles, setMediaFiles] = useState<any[]>([])
   const [showPreview, setShowPreview] = useState(false)
+  const [showSanitationModal, setShowSanitationModal] = useState(false)
 
   useEffect(() => {
     // Fetch article and categories
@@ -175,6 +177,38 @@ export default function EditArticlePage() {
     }
   }
 
+  const validateArticle = (status: 'draft' | 'pending_review') => {
+    const errors: string[] = []
+    if (!article.title.trim()) {
+      errors.push('Title is required')
+    } else if (article.title.trim().length < 5) {
+      errors.push('Title must be at least 5 characters')
+    }
+    if (!article.content.trim()) {
+      errors.push('Content is required')
+    } else if (status === 'pending_review' && article.content.trim().length < 100) {
+      errors.push('Content must be at least 100 characters for submission')
+    }
+    if (status === 'pending_review') {
+      if (!article.categoryId) errors.push('Category is required for review submission')
+      if (!article.featuredImageUrl) errors.push('Featured image is required for review submission')
+      if (!article.excerpt || article.excerpt.trim().length < 20) errors.push('Meta description / excerpt is required')
+    }
+    return errors
+  }
+
+  const handleSubmitForReviewClick = () => {
+    setError('')
+    const validationErrors = validateArticle('pending_review')
+    if (validationErrors.length > 0) {
+      setError(validationErrors.join('\n'))
+      alert(`Please fix the following issues before review submission:\n\n${validationErrors.join('\n')}`)
+      return
+    }
+    // Launch interactive 3-stage sanitation analysis modal
+    setShowSanitationModal(true)
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -201,6 +235,17 @@ export default function EditArticlePage() {
 
   return (
     <div className="max-w-6xl mx-auto p-6">
+      {/* 3-Stage Article Sanitation Modal */}
+      <ArticleSanitationModal
+        isOpen={showSanitationModal}
+        article={article}
+        onClose={() => setShowSanitationModal(false)}
+        onSuccessSubmit={() => {
+          setShowSanitationModal(false)
+          handleSave('pending_review')
+        }}
+      />
+
       {/* Header */}
       <div className="mb-6 space-y-4">
         <div className="flex items-start justify-between">
@@ -234,7 +279,7 @@ export default function EditArticlePage() {
             {isSaving ? 'Saving...' : 'Save Draft'}
           </Button>
           <Button 
-            onClick={() => handleSave('pending_review')}
+            onClick={handleSubmitForReviewClick}
             disabled={isSaving || !article.title || !article.content}
           >
             <Send className="h-4 w-4 mr-2" />
