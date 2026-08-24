@@ -5,10 +5,11 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArticleEditor } from '@/components/articles/article-editor'
-import { ArrowLeft, Save, Eye, Send, Upload, Image as ImageIcon, X } from 'lucide-react'
+import { ArrowLeft, Save, Eye, Send, Upload, Image as ImageIcon, X, Clock, Award, Star, AlertTriangle, CheckCircle2, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { articlesAPI, categoriesAPI, mediaAPI, settingsAPI } from '@/lib/api'
 import { getMediaUrl } from '@/lib/media'
+import { publisherAuthFetch } from '@/lib/publisher-session'
 
 const DEFAULT_TAGS = [
   "Latest News",
@@ -42,6 +43,18 @@ function NewArticlePageContent() {
   const [showMediaLibrary, setShowMediaLibrary] = useState(false)
   const [mediaFiles, setMediaFiles] = useState<any[]>([])
   const [showPreview, setShowPreview] = useState(false)
+
+  // Daily quota status
+  const [quotaStatus, setQuotaStatus] = useState<{
+    used: number
+    limit: number
+    remaining: number
+    resetsIn: string
+    tierName: string
+    starRating: number
+    canPublish: boolean
+  } | null>(null)
+  const [quotaLoading, setQuotaLoading] = useState(true)
 
   // Restore draft from local storage
   useEffect(() => {
@@ -90,8 +103,24 @@ function NewArticlePageContent() {
       }
     }
 
+    const fetchQuota = async () => {
+      try {
+        setQuotaLoading(true)
+        const res = await publisherAuthFetch('/api/articles/daily-limit-status')
+        if (res.ok) {
+          const json = await res.json()
+          setQuotaStatus(json.data || json)
+        }
+      } catch (e) {
+        console.error('Failed to fetch quota:', e)
+      } finally {
+        setQuotaLoading(false)
+      }
+    }
+
     fetchCategories()
     fetchSettings()
+    fetchQuota()
   }, [])
 
   // Separate useEffect for reading URL parameters
@@ -393,6 +422,65 @@ function NewArticlePageContent() {
                     </span>
                   </div>
                 </div>
+              </div>
+
+              {/* Publisher Daily Publishing Quota Widget under Editor */}
+              <div className="mt-6 p-6 rounded-2xl bg-gradient-to-br from-slate-50 via-purple-50/40 to-slate-50 border-2 border-purple-200 shadow-md">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-purple-500/20">
+                      <Award className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold uppercase tracking-wider text-purple-700">Daily Publishing Quota</span>
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800">
+                          {quotaStatus?.tierName || 'New'} Rank ({quotaStatus?.starRating || 0}★)
+                        </span>
+                      </div>
+                      <h4 className="text-base font-bold text-slate-900 mt-0.5">
+                        {quotaStatus?.remaining ?? 5} of {quotaStatus?.limit ?? 5} articles remaining today
+                      </h4>
+                    </div>
+                  </div>
+
+                  <Link 
+                    href="/dashboard/rank-rate"
+                    className="inline-flex items-center gap-1 text-xs font-bold text-purple-700 bg-white px-3.5 py-2 rounded-xl border border-purple-200 hover:bg-purple-50 transition-colors shadow-sm self-start sm:self-auto"
+                  >
+                    View Rank & Rate
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+
+                {/* Progress bar */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs text-slate-600 font-medium">
+                    <span>Used in last 24 hours: <strong>{quotaStatus?.used ?? 0} / {quotaStatus?.limit ?? 5}</strong></span>
+                    <span className="text-purple-700 font-semibold">Resets in: {quotaStatus?.resetsIn || 'Rolling 24h'}</span>
+                  </div>
+                  <div className="h-3 bg-slate-200 rounded-full overflow-hidden p-0.5">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        quotaStatus && quotaStatus.remaining === 0 
+                          ? 'bg-red-500' 
+                          : 'bg-gradient-to-r from-purple-500 to-pink-500'
+                      }`}
+                      style={{ 
+                        width: `${Math.min(100, Math.max(0, (((quotaStatus?.used ?? 0) / (quotaStatus?.limit ?? 5)) * 100)))}%` 
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {quotaStatus && quotaStatus.remaining === 0 && (
+                  <div className="mt-4 p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                    <span>
+                      You have reached your daily publishing limit of {quotaStatus.limit} articles. You can still save drafts. Upgrade your rank in <strong>Rank & Rate</strong> to increase your daily limit!
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -16,13 +16,15 @@ import {
   Image,
   Mail,
   TrendingUp,
-  Search
+  Search,
+  Award
 } from 'lucide-react'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home, notificationKey: 'dashboard' },
   { name: 'Articles', href: '/dashboard/articles', icon: FileText, notificationKey: 'articles', showBadge: true },
   { name: 'New Article', href: '/dashboard/articles/new', icon: Plus, notificationKey: 'new' },
+  { name: 'Rank & Rate', href: '/dashboard/rank-rate', icon: Award, notificationKey: 'rank-rate' },
   { name: 'Browse Topics', href: '/dashboard/browse-topics', icon: Search, notificationKey: 'topics' },
   { name: 'Media Library', href: '/dashboard/media', icon: Image, notificationKey: 'media' },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3, notificationKey: 'analytics' },
