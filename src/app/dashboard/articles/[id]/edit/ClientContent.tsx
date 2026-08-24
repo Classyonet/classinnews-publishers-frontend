@@ -50,50 +50,60 @@ export default function EditArticlePage() {
   const [showSanitationModal, setShowSanitationModal] = useState(false)
 
   useEffect(() => {
-    // Fetch article and categories
-    const fetchData = async () => {
-      try {
-        setIsLoading(true)
-        
-        // Fetch categories
-        const categoriesData = await categoriesAPI.getAll()
-        console.log('Fetched categories:', categoriesData)
-        setCategories(categoriesData)
+    const loadAll = async () => {
+      if (!articleId) return
+      setIsLoading(true)
+      setError('')
 
-        // Fetch article
+      // 1. Fetch categories (non-blocking)
+      try {
+        const categoriesData = await categoriesAPI.getAll()
+        setCategories(Array.isArray(categoriesData) ? categoriesData : [])
+      } catch (err) {
+        console.warn('Failed to load categories:', err)
+      }
+
+      // 2. Fetch public settings (non-blocking)
+      try {
+        const settings = await settingsAPI.getPublicSettings('article-page')
+        if (Array.isArray(settings)) {
+          const tagsSetting = settings.find((s: any) => s.key === 'news_flash_tags')
+          if (tagsSetting && tagsSetting.value) {
+            setNewsFlashTags(JSON.parse(tagsSetting.value))
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load article settings:', err)
+      }
+
+      // 3. Fetch article (critical)
+      try {
         const articleData = await articlesAPI.getOne(articleId)
-        console.log('Fetched article:', articleData)
-        
+        if (!articleData) {
+          throw new Error('Article not found')
+        }
+
         setArticle({
           title: articleData.title || '',
           content: articleData.content || '',
           excerpt: articleData.excerpt || '',
           source: articleData.source || articleData.seoMetadata?.source || '',
           categoryId: articleData.categoryId || '',
-          tags: articleData.tags || [],
+          tags: Array.isArray(articleData.tags) ? articleData.tags : [],
           featuredImageUrl: articleData.featuredImageUrl || '',
           newsFlashTag: articleData.seoMetadata?.newsFlashTag || '',
           status: articleData.status || 'draft',
           scheduledSubmitAt: articleData.scheduledSubmitAt ? new Date(articleData.scheduledSubmitAt).toISOString().slice(0, 16) : ''
         })
-        
-        // Fetch settings
-        const settings = await settingsAPI.getPublicSettings('article-page')
-        const tagsSetting = settings.find((s: any) => s.key === 'news_flash_tags')
-        if (tagsSetting && tagsSetting.value) {
-          setNewsFlashTags(JSON.parse(tagsSetting.value))
-        }
-      } catch (err) {
-        console.error('Failed to fetch data:', err)
-        setError('Failed to load article')
+      } catch (err: any) {
+        console.error('Failed to load article:', err)
+        setError(err.message || 'Failed to load article')
       } finally {
         setIsLoading(false)
       }
     }
-    
-    if (articleId) {
-      fetchData()
-    }
+
+    loadAll()
   }, [articleId])
 
   const fetchMedia = async () => {
