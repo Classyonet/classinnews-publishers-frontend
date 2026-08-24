@@ -183,6 +183,14 @@ export const articlesAPI = {
     })
     return true
   },
+
+  async scheduleSubmission(id: string, scheduledSubmitAt: string | null) {
+    const data = await publisherApiRequest(`/api/articles/${id}/schedule`, {
+      method: 'PATCH',
+      body: JSON.stringify({ scheduledSubmitAt }),
+    })
+    return data
+  },
 }
 
 // Dashboard API

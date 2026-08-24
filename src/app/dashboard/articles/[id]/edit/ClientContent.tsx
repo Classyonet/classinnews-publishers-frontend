@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArticleEditor } from '@/components/articles/article-editor'
-import { ArrowLeft, Save, Eye, Send, Upload, Image as ImageIcon, X } from 'lucide-react'
+import { ArrowLeft, Save, Eye, Send, Upload, Image as ImageIcon, X, Clock } from 'lucide-react'
 import Link from 'next/link'
 import { articlesAPI, categoriesAPI, mediaAPI, settingsAPI } from '@/lib/api'
 import { getMediaUrl } from '@/lib/media'
@@ -72,7 +72,8 @@ export default function EditArticlePage() {
           tags: articleData.tags || [],
           featuredImageUrl: articleData.featuredImageUrl || '',
           newsFlashTag: articleData.seoMetadata?.newsFlashTag || '',
-          status: articleData.status || 'draft'
+          status: articleData.status || 'draft',
+          scheduledSubmitAt: articleData.scheduledSubmitAt ? new Date(articleData.scheduledSubmitAt).toISOString().slice(0, 16) : ''
         })
         
         // Fetch settings
@@ -153,6 +154,7 @@ export default function EditArticlePage() {
         categoryId: article.categoryId || null,
         featuredImageUrl: article.featuredImageUrl || null,
         source: article.source.trim(),
+        scheduledSubmitAt: (article as any).scheduledSubmitAt ? new Date((article as any).scheduledSubmitAt).toISOString() : null,
         seoMetadata: {
           newsFlashTag: article.newsFlashTag
         }
@@ -499,6 +501,40 @@ export default function EditArticlePage() {
                   Enter a URL, upload a new image, or select from your media library
                 </p>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* 📅 Schedule Submission */}
+          <Card className="border-2 border-blue-100 bg-gradient-to-br from-white to-blue-50/30">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-blue-600" />
+                <div>
+                  <CardTitle className="text-base">Schedule Submission</CardTitle>
+                  <p className="text-xs text-slate-500 mt-0.5">Auto-submit draft for review at a future time</p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">Scheduled Date & Time</label>
+                <input
+                  type="datetime-local"
+                  className="w-full border-2 border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  value={(article as any).scheduledSubmitAt || ''}
+                  min={new Date(Date.now() + 60 * 1000).toISOString().slice(0, 16)}
+                  onChange={(e) => setArticle({ ...article, scheduledSubmitAt: e.target.value || '' } as any)}
+                />
+              </div>
+              {(article as any).scheduledSubmitAt && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-md text-xs text-blue-800 font-medium flex items-start gap-2">
+                  <Clock className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-blue-600" />
+                  <span>
+                    Scheduled for <strong>{new Date((article as any).scheduledSubmitAt).toLocaleString()}</strong>. Admin approval still required.
+                  </span>
+                </div>
+              )}
+              <p className="text-xs text-gray-500">Leave blank to submit manually. Only works when saved as draft.</p>
             </CardContent>
           </Card>
 

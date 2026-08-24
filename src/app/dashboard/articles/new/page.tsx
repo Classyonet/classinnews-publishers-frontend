@@ -256,6 +256,7 @@ function NewArticlePageContent() {
         content: article.content.trim(),
         excerpt: article.excerpt.trim(),
         source: article.source.trim(),
+        scheduledSubmitAt: (article as any).scheduledSubmitAt ? new Date((article as any).scheduledSubmitAt).toISOString() : null,
         seoMetadata: {
           newsFlashTag: article.newsFlashTag
         }
@@ -734,6 +735,42 @@ function NewArticlePageContent() {
                   Paste URL, upload new, or select from library
                 </p>
               </div>
+            </div>
+          </div>
+
+          {/* 📅 Schedule Submission */}
+          <div className="rounded-2xl bg-gradient-to-br from-white to-blue-50/30 p-6 shadow-xl border-2 border-blue-100">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-md">
+                <Clock className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold bg-gradient-to-r from-slate-900 to-blue-700 bg-clip-text text-transparent">Schedule Submission</h3>
+                <p className="text-xs text-slate-500">Auto-submit draft for review at a future time</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">Scheduled Date & Time</label>
+                <input
+                  type="datetime-local"
+                  className="w-full border-2 border-slate-200 rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white"
+                  value={article.scheduledSubmitAt || ''}
+                  min={new Date(Date.now() + 60 * 1000).toISOString().slice(0, 16)}
+                  onChange={(e) => setArticle({ ...article, scheduledSubmitAt: e.target.value || '' } as any)}
+                />
+              </div>
+              {(article as any).scheduledSubmitAt && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800 font-medium flex items-start gap-2">
+                  <Clock className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-blue-600" />
+                  <span>
+                    This draft will automatically be submitted for review on <strong>{new Date((article as any).scheduledSubmitAt).toLocaleString()}</strong>. Admin approval is still required.
+                  </span>
+                </div>
+              )}
+              <p className="text-xs text-slate-500">
+                Leave blank to submit manually. When scheduled, saving as draft will set the timer.
+              </p>
             </div>
           </div>
 

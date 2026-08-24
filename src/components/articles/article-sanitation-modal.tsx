@@ -84,12 +84,27 @@ export function ArticleSanitationModal({
     }
   }, [isOpen])
 
+  // Helper: animate sub-text cycling while a stage scans
+  const cycleSubTexts = (texts: string[], setter: (t: string) => void, intervalMs: number) => {
+    let i = 0
+    setter(texts[0])
+    const t = setInterval(() => {
+      i = (i + 1) % texts.length
+      setter(texts[i])
+    }, intervalMs)
+    return t
+  }
+
+  const [secSubText, setSecSubText] = useState('Scanning for dangerous tags, scripts, and unsafe URLs...')
+  const [qualSubText, setQualSubText] = useState('Analyzing length, typographical integrity, and structure...')
+  const [aiSubText, setAiSubText] = useState('Evaluating sentence burstiness and AI syntax patterns...')
+
   const runSanitationWorkflow = async () => {
     setIsScanning(true)
     setAllPassed(false)
     setIsAutoSubmitting(false)
     setCurrentStep(1)
-    setProgress(15)
+    setProgress(5)
 
     setSecurityState({
       status: 'scanning',
@@ -102,109 +117,163 @@ export function ArticleSanitationModal({
       status: 'pending',
       score: 0,
       title: 'Content Quality & Integrity',
-      details: 'Analyzing length, typographical integrity, and structure...',
+      details: 'Waiting...',
       issues: []
     })
     setAiState({
       status: 'pending',
       score: 0,
       title: 'AI Content & Originality Analysis',
-      details: 'Evaluating burstiness and syntax (maximum 50% limit)...',
+      details: 'Waiting...',
       issues: [],
       aiPercentage: 0,
       threshold: 50
     })
 
-    try {
-      // Call backend sanitation endpoint
-      const res = await publisherAuthFetch('/api/articles/sanitize-check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: article.title,
-          content: article.content,
-          excerpt: article.excerpt
-        })
+    // Fire the backend request first while animations play
+    const fetchPromise = publisherAuthFetch('/api/articles/sanitize-check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: article.title,
+        content: article.content,
+        excerpt: article.excerpt
       })
+    })
 
+    try {
+      // ── Stage 1: Security (2200ms) ─────────────────────────────────────────
+      const secTexts = [
+        'Scanning for <script> and iframe tags...',
+        'Checking for inline event handlers...',
+        'Inspecting href and src protocols...',
+        'Searching for base64 executable payloads...',
+        'Verifying SQL injection patterns...',
+        'Running deep XSS fingerprint scan...',
+      ]
+      const secCycler = cycleSubTexts(secTexts, setSecSubText, 380)
+
+      // Animate progress from 5 → 32 during stage 1
+      const prog1 = setInterval(() => setProgress(p => Math.min(32, p + 1)), 65)
+      await new Promise(r => setTimeout(r, 2200))
+      clearInterval(prog1)
+      clearInterval(secCycler)
+      setProgress(33)
+
+      // Await backend response
+      const res = await fetchPromise
       const json = await res.json().catch(() => null)
       const data = json?.data
 
-      // Step 1: Security Scan Animation (800ms)
-      await new Promise(r => setTimeout(r, 800))
       const secPassed = data?.stages?.security?.passed ?? true
       const secIssues = data?.stages?.security?.issues ?? []
       const secScore = data?.stages?.security?.score ?? (secPassed ? 100 : 0)
 
+      setSecSubText(secPassed ? 'Zero threats detected.' : 'Threat detected!')
       setSecurityState({
         status: secPassed ? 'passed' : 'failed',
         score: secScore,
         title: 'Security & Code Safety',
-        details: secPassed ? 'Safe: Zero malicious scripts or dangerous tags detected.' : 'Vulnerability detected in article body.',
+        details: secPassed ? 'Safe: No malicious scripts, event handlers, or dangerous URLs detected.' : 'Security vulnerability detected in article body.',
         issues: secIssues
       })
-      setProgress(38)
 
       if (!secPassed) {
         setIsScanning(false)
         return
       }
 
-      // Step 2: Quality & Integrity Animation (900ms)
+      await new Promise(r => setTimeout(r, 400))
+
+      // ── Stage 2: Quality (2800ms) ──────────────────────────────────────────
       setCurrentStep(2)
-      setQualityState(prev => ({ ...prev, status: 'scanning' }))
-      await new Promise(r => setTimeout(r, 900))
+      setQualityState(prev => ({ ...prev, status: 'scanning', details: 'Checking word count and minimum length...' }))
+      const qualTexts = [
+        'Checking minimum word count and length...',
+        'Validating title formatting and casing...',
+        'Scanning for gibberish and repeated characters...',
+        'Checking vocabulary diversity (TTR analysis)...',
+        'Scanning against prohibited words database...',
+        'Verifying excerpt/meta description...',
+        'Running final lexical integrity check...',
+      ]
+      const qualCycler = cycleSubTexts(qualTexts, setQualSubText, 410)
+      const prog2 = setInterval(() => setProgress(p => Math.min(65, p + 1)), 75)
+      await new Promise(r => setTimeout(r, 2800))
+      clearInterval(prog2)
+      clearInterval(qualCycler)
+      setProgress(66)
 
       const qualPassed = data?.stages?.quality?.passed ?? true
       const qualIssues = data?.stages?.quality?.issues ?? []
       const qualScore = data?.stages?.quality?.score ?? (qualPassed ? 95 : 0)
 
+      setQualSubText(qualPassed ? 'Editorial standards met.' : 'Quality issues found.')
       setQualityState({
         status: qualPassed ? 'passed' : 'failed',
         score: qualScore,
         title: 'Content Quality & Integrity',
-        details: qualPassed ? 'Passed: Article meets length, clarity, and lexical standards.' : 'Quality or length standards not met.',
+        details: qualPassed ? 'Passed: Article meets length, clarity, and lexical standards.' : 'Quality or editorial standards not met.',
         issues: qualIssues
       })
-      setProgress(72)
 
       if (!qualPassed) {
         setIsScanning(false)
         return
       }
 
-      // Step 3: AI & Originality Animation (1000ms)
+      await new Promise(r => setTimeout(r, 400))
+
+      // ── Stage 3: AI Detection (3600ms) ────────────────────────────────────
       setCurrentStep(3)
-      setAiState(prev => ({ ...prev, status: 'scanning' }))
-      await new Promise(r => setTimeout(r, 1000))
+      setAiState(prev => ({ ...prev, status: 'scanning', details: 'Initializing originality analysis engine...' }))
+      const aiTexts = [
+        'Scanning for AI boilerplate transition phrases...',
+        'Measuring sentence length variance (burstiness)...',
+        'Detecting formulaic adverb openers...',
+        'Analyzing vocabulary distribution pattern (TTR)...',
+        'Evaluating paragraph structural symmetry...',
+        'Checking hedging and vague quantifier density...',
+        'Aggregating 6-metric AI probability score...',
+        'Comparing against 50% platform threshold...',
+      ]
+      const aiCycler = cycleSubTexts(aiTexts, setAiSubText, 460)
+      const prog3 = setInterval(() => setProgress(p => Math.min(97, p + 1)), 95)
+      await new Promise(r => setTimeout(r, 3600))
+      clearInterval(prog3)
+      clearInterval(aiCycler)
+      setProgress(98)
 
       const aiPassed = data?.stages?.aiDetection?.passed ?? true
       const aiIssues = data?.stages?.aiDetection?.issues ?? []
       const aiScore = data?.stages?.aiDetection?.score ?? (aiPassed ? 88 : 30)
-      const aiPct = data?.stages?.aiDetection?.aiPercentage ?? 18
+      const aiPct = data?.stages?.aiDetection?.aiPercentage ?? 5
       const threshold = data?.stages?.aiDetection?.threshold ?? 50
 
+      setAiSubText(aiPassed ? `Originality confirmed at ${aiPct}% AI score.` : `High AI score: ${aiPct}% exceeds ${threshold}% limit.`)
       setAiState({
         status: aiPassed ? 'passed' : 'failed',
         score: aiScore,
         aiPercentage: aiPct,
         threshold,
         title: 'AI Content & Originality Analysis',
-        details: aiPassed 
-          ? `Originality verified (${aiPct}% AI probability, under ${threshold}% limit).` 
+        details: aiPassed
+          ? `Originality verified (${aiPct}% AI probability, under ${threshold}% limit).`
           : `High AI probability (${aiPct}% exceeds ${threshold}% limit).`,
         issues: aiIssues
       })
+
+      await new Promise(r => setTimeout(r, 300))
       setProgress(100)
       setIsScanning(false)
 
       if (aiPassed) {
         setAllPassed(true)
         setIsAutoSubmitting(true)
-        // Auto-submit after 1200ms celebratory pause
+        // Auto-submit after 2000ms celebratory pause
         setTimeout(() => {
           onSuccessSubmit()
-        }, 1200)
+        }, 2000)
       }
     } catch (err) {
       console.error('Sanitation scan error:', err)
@@ -301,7 +370,9 @@ export function ArticleSanitationModal({
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Checkpoint 1</span>
                     <h4 className="text-sm font-bold text-slate-900">{securityState.title}</h4>
                   </div>
-                  <p className="text-xs text-slate-600 mt-0.5">{securityState.details}</p>
+                  <p className="text-xs text-slate-600 mt-0.5">
+                    {securityState.status === 'scanning' ? secSubText : securityState.details}
+                  </p>
                 </div>
               </div>
 
@@ -365,7 +436,9 @@ export function ArticleSanitationModal({
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Checkpoint 2</span>
                     <h4 className="text-sm font-bold text-slate-900">{qualityState.title}</h4>
                   </div>
-                  <p className="text-xs text-slate-600 mt-0.5">{qualityState.details}</p>
+                  <p className="text-xs text-slate-600 mt-0.5">
+                    {qualityState.status === 'scanning' ? qualSubText : qualityState.details}
+                  </p>
                 </div>
               </div>
 
@@ -429,7 +502,9 @@ export function ArticleSanitationModal({
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Checkpoint 3</span>
                     <h4 className="text-sm font-bold text-slate-900">{aiState.title}</h4>
                   </div>
-                  <p className="text-xs text-slate-600 mt-0.5">{aiState.details}</p>
+                  <p className="text-xs text-slate-600 mt-0.5">
+                    {aiState.status === 'scanning' ? aiSubText : aiState.details}
+                  </p>
                 </div>
               </div>
 
