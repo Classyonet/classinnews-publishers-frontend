@@ -34,7 +34,8 @@ function NewArticlePageContent() {
     featuredImageUrl: '',
     newsFlashTag: '',
     status: 'draft' as 'draft' | 'pending_review',
-    scheduledSubmitAt: ''
+    scheduledSubmitAt: '',
+    isFeatured: false
   })
 
   const [categories, setCategories] = useState<any[]>([])
@@ -56,6 +57,8 @@ function NewArticlePageContent() {
     tierName: string
     starRating: number
     canPublish: boolean
+    isFeatured?: boolean
+    unlimited?: boolean
   } | null>(null)
   const [quotaLoading, setQuotaLoading] = useState(true)
 
@@ -452,61 +455,93 @@ function NewArticlePageContent() {
               </div>
 
               {/* Publisher Daily Publishing Quota Widget under Editor */}
-              <div className="mt-6 p-6 rounded-2xl bg-gradient-to-br from-slate-50 via-purple-50/40 to-slate-50 border-2 border-purple-200 shadow-md">
+              <div className={`mt-6 p-6 rounded-2xl border-2 shadow-md ${
+                quotaStatus?.isFeatured
+                  ? 'bg-gradient-to-br from-amber-50 via-yellow-50/40 to-amber-50 border-amber-300'
+                  : 'bg-gradient-to-br from-slate-50 via-purple-50/40 to-slate-50 border-purple-200'
+              }`}>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-purple-500/20">
-                      <Award className="w-5 h-5" />
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-md ${
+                      quotaStatus?.isFeatured
+                        ? 'bg-gradient-to-br from-amber-400 to-yellow-500 shadow-amber-500/20'
+                        : 'bg-gradient-to-br from-purple-500 to-indigo-600 shadow-purple-500/20'
+                    }`}>
+                      {quotaStatus?.isFeatured ? <Star className="w-5 h-5 fill-white" /> : <Award className="w-5 h-5" />}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold uppercase tracking-wider text-purple-700">Daily Publishing Quota</span>
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800">
-                          {quotaStatus?.tierName || 'New'} Rank ({quotaStatus?.starRating || 0}★)
+                        <span className={`text-xs font-bold uppercase tracking-wider ${quotaStatus?.isFeatured ? 'text-amber-700' : 'text-purple-700'}`}>
+                          Daily Publishing Quota
                         </span>
+                        {quotaStatus?.isFeatured ? (
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 flex items-center gap-1">
+                            <Star className="w-3 h-3 fill-amber-500" /> Featured Publisher
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800">
+                            {quotaStatus?.tierName || 'New'} Rank ({quotaStatus?.starRating || 0}★)
+                          </span>
+                        )}
                       </div>
                       <h4 className="text-base font-bold text-slate-900 mt-0.5">
-                        {quotaStatus?.remaining ?? 5} of {quotaStatus?.limit ?? 5} articles remaining today
+                        {quotaStatus?.isFeatured
+                          ? '⭐ Unlimited Articles (Featured Publisher)'
+                          : `${quotaStatus?.remaining ?? 5} of ${quotaStatus?.limit ?? 5} articles remaining today`
+                        }
                       </h4>
                     </div>
                   </div>
 
-                  <Link 
-                    href="/dashboard/rank-rate"
-                    className="inline-flex items-center gap-1 text-xs font-bold text-purple-700 bg-white px-3.5 py-2 rounded-xl border border-purple-200 hover:bg-purple-50 transition-colors shadow-sm self-start sm:self-auto"
-                  >
-                    View Rank & Rate
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </Link>
+                  {!quotaStatus?.isFeatured && (
+                    <Link 
+                      href="/dashboard/rank-rate"
+                      className="inline-flex items-center gap-1 text-xs font-bold text-purple-700 bg-white px-3.5 py-2 rounded-xl border border-purple-200 hover:bg-purple-50 transition-colors shadow-sm self-start sm:self-auto"
+                    >
+                      View Rank & Rate
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </Link>
+                  )}
                 </div>
 
-                {/* Progress bar */}
-                <div className="space-y-2">
-                  <div className="flex justify-between text-xs text-slate-600 font-medium">
-                    <span>Used in last 24 hours: <strong>{quotaStatus?.used ?? 0} / {quotaStatus?.limit ?? 5}</strong></span>
-                    <span className="text-purple-700 font-semibold">Resets in: {quotaStatus?.resetsIn || 'Rolling 24h'}</span>
-                  </div>
-                  <div className="h-3 bg-slate-200 rounded-full overflow-hidden p-0.5">
-                    <div 
-                      className={`h-full rounded-full transition-all duration-500 ${
-                        quotaStatus && quotaStatus.remaining === 0 
-                          ? 'bg-red-500' 
-                          : 'bg-gradient-to-r from-purple-500 to-pink-500'
-                      }`}
-                      style={{ 
-                        width: `${Math.min(100, Math.max(0, (((quotaStatus?.used ?? 0) / (quotaStatus?.limit ?? 5)) * 100)))}%` 
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {quotaStatus && quotaStatus.remaining === 0 && (
-                  <div className="mt-4 p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                {quotaStatus?.isFeatured ? (
+                  <div className="p-3.5 bg-amber-100/60 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-center gap-2">
+                    <Star className="w-4 h-4 flex-shrink-0 fill-amber-500 text-amber-500" />
                     <span>
-                      You have reached your daily publishing limit of {quotaStatus.limit} articles. You can still save drafts. Upgrade your rank in <strong>Rank & Rate</strong> to increase your daily limit!
+                      As a <strong>Featured Publisher</strong>, you have no daily publishing limit. Articles submitted for review are <strong>automatically published</strong> instantly.
                     </span>
                   </div>
+                ) : (
+                  <>
+                    {/* Progress bar */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs text-slate-600 font-medium">
+                        <span>Used in last 24 hours: <strong>{quotaStatus?.used ?? 0} / {quotaStatus?.limit ?? 5}</strong></span>
+                        <span className="text-purple-700 font-semibold">Resets in: {quotaStatus?.resetsIn || 'Rolling 24h'}</span>
+                      </div>
+                      <div className="h-3 bg-slate-200 rounded-full overflow-hidden p-0.5">
+                        <div 
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            quotaStatus && quotaStatus.remaining === 0 
+                              ? 'bg-red-500' 
+                              : 'bg-gradient-to-r from-purple-500 to-pink-500'
+                          }`}
+                          style={{ 
+                            width: `${Math.min(100, Math.max(0, (((quotaStatus?.used ?? 0) / (quotaStatus?.limit ?? 5)) * 100)))}%` 
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {quotaStatus && quotaStatus.remaining === 0 && (
+                      <div className="mt-4 p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                        <span>
+                          You have reached your daily publishing limit of {quotaStatus.limit} articles. You can still save drafts. Upgrade your rank in <strong>Rank & Rate</strong> to increase your daily limit!
+                        </span>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -825,6 +860,44 @@ function NewArticlePageContent() {
               </div>
             </div>
           </div>
+
+          {/* ⭐ Pin to Latest News (Featured Publishers Only) */}
+          {quotaStatus?.isFeatured && (
+            <div className="rounded-2xl bg-gradient-to-br from-amber-50 to-yellow-50/30 p-6 shadow-xl border-2 border-amber-200">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center shadow-md">
+                  <Star className="w-4 h-4 text-white fill-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold bg-gradient-to-r from-amber-700 to-yellow-600 bg-clip-text text-transparent">Pin to Latest News</h3>
+                  <p className="text-xs text-amber-600">Featured Publisher exclusive</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-amber-200">
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">Pin this article to top</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Article appears at the top of Latest News with a Featured badge</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setArticle({ ...article, isFeatured: !article.isFeatured })}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    article.isFeatured ? 'bg-amber-400' : 'bg-slate-200'
+                  }`}
+                >
+                  <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    article.isFeatured ? 'translate-x-5' : 'translate-x-0'
+                  }`} />
+                </button>
+              </div>
+              {article.isFeatured && (
+                <p className="text-xs text-amber-700 mt-3 font-medium flex items-center gap-1">
+                  <Star className="w-3 h-3 fill-amber-500" />
+                  This article will be pinned to the top of Latest News (max 2 at a time)
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Publishing Status */}
           <div className="rounded-2xl bg-gradient-to-br from-white to-purple-50/20 p-6 shadow-xl border-2 border-purple-100">
